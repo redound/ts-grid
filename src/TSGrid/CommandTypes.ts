@@ -2,10 +2,14 @@ module TSGrid {
 
     export enum CommandTypes {
         NONE,
-        MOVE_UP,
-        MOVE_DOWN,
-        MOVE_LEFT,
-        MOVE_RIGHT,
+        ARROW_UP,
+        ARROW_DOWN,
+        ARROW_LEFT,
+        ARROW_RIGHT,
+        TAB,
+        SHIFT_TAB,
+        ENTER,
+        BACKSPACE,
         SAVE,
         CANCEL
     }

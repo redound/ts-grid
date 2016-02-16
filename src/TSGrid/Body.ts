@@ -1,24 +1,27 @@
 ///<reference path="View.ts"/>
+///<reference path="Command.ts"/>
+///<reference path="CommandTypes.ts"/>
+///<reference path="GridPosition.ts"/>
 
 module TSGrid {
 
     export class Body extends View {
 
-        public tagName: string = 'div';
+        public tagName:string = 'div';
 
-        public className: string = 'ts-grid-body';
+        public className:string = 'ts-grid-body';
 
-        public columns: TSCore.Data.List<Column>;
+        public columns:TSCore.Data.List<Column>;
 
-        public row: IRow = Row;
+        public row:IRow = Row;
 
-        public rows: TSCore.Data.List<Row>;
+        public rows:TSCore.Data.List<Row>;
 
-        public items: TSCore.Data.List<TSCore.Data.Model>;
+        public items:TSCore.Data.List<TSCore.Data.Model>;
 
-        public _grid: Grid;
+        public _grid:Grid;
 
-        public constructor(columns: TSCore.Data.List<Column>, items: TSCore.Data.List<TSCore.Data.Model>, rowClass?: IRow) {
+        public constructor(columns:TSCore.Data.List<Column>, items:TSCore.Data.List<TSCore.Data.Model>, rowClass?:IRow) {
 
             super();
 
@@ -50,16 +53,17 @@ module TSGrid {
             this.items.events.on(TSCore.Data.List.Events.REMOVE, evt => this.removeRows(evt));
         }
 
-        public setGrid(grid: Grid) {
+        public setGrid(grid:Grid) {
             this._grid = grid;
             grid.events.on(TSGrid.TSGridEvents.EDITED, this.moveToNextCell, this);
+            grid.events.on(TSGrid.TSGridEvents.NAVIGATE, this.moveToNextCell, this);
         }
 
         public getGrid() {
             return this._grid;
         }
 
-        public insertRow(model: TSCore.Data.Model, index?: number, items?: TSCore.Data.List<TSCore.Data.Model>) {
+        public insertRow(model:TSCore.Data.Model, index?:number, items?:TSCore.Data.List<TSCore.Data.Model>) {
 
             // insertRow() is called directly
             if (_.isUndefined(items)) {
@@ -90,7 +94,7 @@ module TSGrid {
 
         public insertRows(evt) {
 
-            var operations: TSCore.Data.IListOperation[] = evt.params.operations;
+            var operations:TSCore.Data.IListOperation[] = evt.params.operations;
 
             _.each(operations, operation => {
                 this.insertRow(operation.item, operation.index, this.items);
@@ -99,7 +103,7 @@ module TSGrid {
 
         public removeRows(evt) {
 
-            var operations: TSCore.Data.IListOperation[] = evt.params.operations;
+            var operations:TSCore.Data.IListOperation[] = evt.params.operations;
 
             // First gather row objects, when we delete directly indexes
             // won't be correct
@@ -114,7 +118,7 @@ module TSGrid {
             });
         }
 
-        public removeRow(model: TSCore.Data.Model) {
+        public removeRow(model:TSCore.Data.Model) {
 
             this.items.remove(model);
 
@@ -129,7 +133,7 @@ module TSGrid {
          * Renders all the rows inside this body.
          * @returns {TSGrid.Body}
          */
-        public render(): Body {
+        public render():Body {
 
             this.$el.empty();
 
@@ -138,7 +142,7 @@ module TSGrid {
             table.appendChild(tbody);
 
             this.rows.each(row => {
-               tbody.appendChild(row.render().el);
+                tbody.appendChild(row.render().el);
             });
 
             this.el.appendChild(table);
@@ -149,7 +153,7 @@ module TSGrid {
         }
 
         public remove() {
-            this.rows.each(function(row) {
+            this.rows.each(function (row) {
                 row.remove.apply(row, arguments);
             });
             return super.remove();
@@ -157,8 +161,12 @@ module TSGrid {
 
         public moveToNextCell(evt) {
 
-            var model: TSCore.Data.Model = evt.params.model;
-            var column: Column = evt.params.column;
+            console.log('moveToNextCell', evt);
+
+            var grid = this.getGrid();
+
+            var model = evt.params.model;
+            var column = evt.params.column;
             var command: Command = evt.params.command;
             var cell, renderable, editable, m, n;
 
@@ -167,23 +175,36 @@ module TSGrid {
 
             if (j === -1) return this;
 
-            this.rows.get(i).cells.get(j).exitEditMode();
+            var currentCell = this.rows.get(i).cells.get(j);
 
             //var currentRow = this.rows.get(i);
             //currentRow.render();
 
-            if (command.moveUp() || command.moveDown() || command.moveLeft() ||
-                command.moveRight() || command.save()) {
+            if (command.navigate() || command.blurred()) {
                 var l = this.columns.length;
                 var maxOffset = l * this.items.length;
 
-                if (command.moveUp() || command.moveDown()) {
+                if (command.blurred()) {
+
+                    console.debug('BLURRED');
+
+                    currentCell.blur();
+                }
+                else if (command.moveUp() || command.moveDown()) {
                     m = i + (command.moveUp() ? -1 : 1);
+
+                    console.debug('MOVEUP MOVEDOWN');
+
                     var row = this.rows.get(m);
                     if (row) {
                         cell = row.cells.get(j);
                         if (TSGrid.callByNeed(cell.column.getEditable(), cell.column, model)) {
-                            cell.enterEditMode();
+                            var editMode = currentCell.editModeActive;
+                            currentCell.blur();
+                            cell.focus();
+                            if (editMode) {
+                                cell.enterEditMode();
+                            }
                             model.events.trigger(TSGridEvents.NEXT, {
                                 m: m,
                                 j: j,
@@ -200,6 +221,15 @@ module TSGrid {
                     }
                 }
                 else if (command.moveLeft() || command.moveRight()) {
+
+                    console.debug('MOVELEFT MOVERIGHT');
+
+                    var e = command.getEvent();
+
+                    if (e) {
+                        e.preventDefault();
+                    }
+
                     var right = command.moveRight();
                     for (var offset = i * l + j + (right ? 1 : -1);
                          offset >= 0 && offset < maxOffset;
@@ -209,8 +239,14 @@ module TSGrid {
                         cell = this.rows.get(m).cells.get(n);
                         renderable = TSGrid.callByNeed(cell.column.getRenderable(), cell.column, cell.model);
                         editable = TSGrid.callByNeed(cell.column.getEditable(), cell.column, model);
+
                         if (renderable && editable) {
-                            cell.enterEditMode();
+                            var editMode = currentCell.editModeActive;
+                            currentCell.blur();
+                            cell.focus();
+                            if (editMode) {
+                                cell.enterEditMode();
+                            }
                             model.events.trigger(TSGridEvents.NEXT, {
                                 m: m,
                                 j: n,

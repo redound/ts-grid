@@ -16,6 +16,8 @@ module TSGrid {
 
         public editScope;
 
+        public value: any;
+
         public constructor(column: Column, model: TSCore.Data.Model, formatter: CellFormatter) {
 
             super();
@@ -32,58 +34,46 @@ module TSGrid {
             this.model.events.on(TSGridEvents.EDITING, this.postRender, this);
         }
 
-        public saveOrCancel(e, command?: Command) {
+        public setValue(value: any) {
+            this.value = value;
+        }
 
-            var newValue = this.editScope.vm.model;
+        public saveOrCancel(evt, command?: Command) {
 
-            var formatter = this.formatter;
+            if (!command) {
+                command = Command.fromEvent(evt);
+            }
+
             var model = this.model;
             var column = this.column;
             var grid = column.getGrid();
 
-            if (!command) {
-                command = Command.fromEvent(e);
-            }
+            if (command.navigateWhileEdit() || command.enter() || command.clicked() || command.submitted() || command.blurred()) {
 
-            if (command.clicked() || command.submitted() || command.moveUp() || command.moveDown() || command.moveLeft() || command.moveRight() ||
-                command.save() || command.blurred()) {
+                console.log('saveOrCancel', evt);
 
-                if (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
+                if (evt) {
+                    evt.preventDefault();
+                    evt.stopPropagation();
                 }
 
-                // Check validity
-                if (false) {
+                var newValue = this.editScope.vm.model;
+                model.set(column.getName(), newValue);
+                var editedEvent = {
+                    model: model,
+                    column: column,
+                    command: command
+                };
 
-                    var errorEvent = {
-                        model: model,
-                        column: column,
-                        val: newValue
-                    };
-
-                    grid.events.trigger(TSGridEvents.ERROR, errorEvent);
-                    model.events.trigger(TSGridEvents.ERROR, errorEvent);
-                }
-                else {
-                    model.set(column.getName(), newValue);
-
-                    var editedEvent = {
-                        model: model,
-                        column: column,
-                        command: command
-                    };
-
-                    grid.events.trigger(TSGridEvents.EDITED, editedEvent);
-                    model.events.trigger(TSGridEvents.EDITED, editedEvent);
-                }
+                grid.events.trigger(TSGridEvents.EDITED, editedEvent);
+                model.events.trigger(TSGridEvents.EDITED, editedEvent);
             }
             // esc
             else if (command.cancel()) {
-                // undo
 
-                if (e) {
-                    e.stopPropagation();
+                // undo
+                if (evt) {
+                    evt.stopPropagation();
                 }
 
                 var editedEvent = {
@@ -108,7 +98,7 @@ module TSGrid {
 
             this.editScope = $rootScope.$new();
             this.editScope.vm = {
-                model: this.model.get(this.column.getName()),
+                model: !_.isUndefined(this.value) ? this.value : this.model.get(this.column.getName()),
                 editor: this
             };
 
@@ -119,7 +109,7 @@ module TSGrid {
 
             var column = evt.params.column;
 
-            if (column == null || column.getName() == this.column.getName()) {
+            if (column == null || column.getId() == this.column.getId()) {
                 this.$el.focus();
             }
 
@@ -139,11 +129,6 @@ module TSGrid {
             this.destroyScope();
             super.remove();
             return this;
-        }
-
-        public activate() {
-            this.$el.focus();
-            this.$el.select();
         }
     }
 }

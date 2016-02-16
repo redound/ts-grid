@@ -2,6 +2,8 @@ module TSGrid {
 
     export class Column {
 
+        protected _uniqId: number;
+
         protected _grid: Grid;
 
         protected _name: string;
@@ -15,6 +17,14 @@ module TSGrid {
         protected _cell: string;
 
         protected _formatter: string;
+
+        public constructor() {
+            this._uniqId = parseInt(<any>_.uniqueId());
+        }
+
+        public getId() {
+            return this._uniqId;
+        }
 
         public setGrid(grid: Grid) {
             this._grid = grid;

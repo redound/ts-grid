@@ -8,6 +8,8 @@ module TSGrid {
             "click a": "onClick"
         };
 
+        public row: HeaderRow;
+
         public column: Column;
 
         public constructor(column: Column) {

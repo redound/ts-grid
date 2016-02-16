@@ -33,6 +33,76 @@ declare module TSGrid {
     }
 }
 declare module TSGrid {
+    enum CommandTypes {
+        NONE = 0,
+        ARROW_UP = 1,
+        ARROW_DOWN = 2,
+        ARROW_LEFT = 3,
+        ARROW_RIGHT = 4,
+        TAB = 5,
+        SHIFT_TAB = 6,
+        ENTER = 7,
+        BACKSPACE = 8,
+        SAVE = 9,
+        CANCEL = 10,
+    }
+}
+declare module TSGrid {
+    class Command {
+        static ALLOWED_INPUT: number[];
+        commandType: CommandTypes;
+        event: any;
+        type: any;
+        altKey: any;
+        char: any;
+        charCode: any;
+        ctrlKey: boolean;
+        key: string;
+        keyCode: number;
+        local: string;
+        location: string;
+        metaKey: boolean;
+        repeat: boolean;
+        shiftKey: boolean;
+        which: number;
+        setType(type: CommandTypes): void;
+        setEvent(evt: any): void;
+        getEvent(): any;
+        blurred(): boolean;
+        submitted(): boolean;
+        clicked(): boolean;
+        arrowUp(): boolean;
+        arrowDown(): boolean;
+        arrowLeft(): boolean;
+        arrowRight(): boolean;
+        shiftTab(): boolean;
+        tab(): boolean;
+        moveUp(): boolean;
+        moveDown(): boolean;
+        moveLeft(): boolean;
+        moveRight(): boolean;
+        enter(): boolean;
+        backspace(): boolean;
+        cancel(): boolean;
+        navigate(): boolean;
+        navigateWhileEdit(): boolean;
+        input(): boolean;
+        passThru(): boolean;
+        static fromEvent(evt: any): Command;
+        static fromType(type: CommandTypes): Command;
+    }
+}
+declare module TSGrid {
+    class GridPosition {
+        rowIndex: number;
+        columnIndex: number;
+        constructor(rowIndex: number, columnIndex: number);
+        maxRowIndex(max: number): void;
+        maxColumnIndex(max: number): void;
+        same(gridPosition: GridPosition): boolean;
+    }
+}
+declare module TSGrid {
     class Body extends View {
         tagName: string;
         className: string;
@@ -67,16 +137,28 @@ declare module TSGrid {
         tagName: string;
         formatter: CellFormatter;
         editor: ICellEditor;
+        editModeActive: boolean;
+        focussed: boolean;
         currentEditor: CellEditor;
         viewEvents: {
             "click": string;
+            "blur": string;
+            "keypress": string;
+            "keydown": string;
         };
         column: Column;
         model: TSCore.Data.Model;
         constructor(column: Column, model: TSCore.Data.Model, editor?: ICellEditor, formatter?: ICellFormatter);
         initialize(): void;
         render(): Cell;
-        enterEditMode(): void;
+        processKeypress(evt: any): void;
+        processKeydown(evt: any): void;
+        click(): void;
+        focus(): void;
+        blur(): void;
+        clear(): void;
+        doneEditing(evt: any): void;
+        enterEditMode(selectAll?: boolean, initialValue?: any): void;
         renderError(model: TSCore.Data.Model, column: Column): void;
         exitEditMode(): void;
         remove(): Cell;
@@ -91,14 +173,15 @@ declare module TSGrid {
         model: TSCore.Data.Model;
         formatter: CellFormatter;
         editScope: any;
+        value: any;
         constructor(column: Column, model: TSCore.Data.Model, formatter: CellFormatter);
         initialize(): void;
-        saveOrCancel(e: any, command?: Command): void;
+        setValue(value: any): void;
+        saveOrCancel(evt: any, command?: Command): void;
         compile($el: JQuery): any;
         postRender(evt: any): CellEditor;
         destroyScope(): void;
         remove(): CellEditor;
-        activate(): void;
     }
 }
 declare module TSGrid {
@@ -112,6 +195,7 @@ declare module TSGrid {
 }
 declare module TSGrid {
     class Column {
+        protected _uniqId: number;
         protected _grid: Grid;
         protected _name: string;
         protected _label: string;
@@ -119,6 +203,8 @@ declare module TSGrid {
         protected _editable: boolean;
         protected _cell: string;
         protected _formatter: string;
+        constructor();
+        getId(): number;
         setGrid(grid: Grid): void;
         getGrid(): Grid;
         name(name: string): Column;
@@ -136,49 +222,6 @@ declare module TSGrid {
         formatter(formatter: string): Column;
         getFormatter(): string;
         getFormatterClass(): {};
-    }
-}
-declare module TSGrid {
-    enum CommandTypes {
-        NONE = 0,
-        MOVE_UP = 1,
-        MOVE_DOWN = 2,
-        MOVE_LEFT = 3,
-        MOVE_RIGHT = 4,
-        SAVE = 5,
-        CANCEL = 6,
-    }
-}
-declare module TSGrid {
-    class Command {
-        commandType: CommandTypes;
-        type: any;
-        altKey: any;
-        char: any;
-        charCode: any;
-        ctrlKey: boolean;
-        key: string;
-        keyCode: number;
-        local: string;
-        location: string;
-        metaKey: boolean;
-        repeat: boolean;
-        shiftKey: boolean;
-        which: number;
-        setType(type: CommandTypes): void;
-        setEvent(evt: any): void;
-        blurred(): boolean;
-        submitted(): boolean;
-        clicked(): boolean;
-        moveUp(): boolean;
-        moveDown(): boolean;
-        moveLeft(): boolean;
-        moveRight(): boolean;
-        save(): boolean;
-        cancel(): boolean;
-        passThru(): boolean;
-        static fromEvent(evt: any): Command;
-        static fromType(type: CommandTypes): Command;
     }
 }
 declare module TSGrid {
@@ -249,6 +292,7 @@ declare module TSGrid {
     class HeaderCell extends View {
         tagName: string;
         viewEvents: any;
+        row: HeaderRow;
         column: Column;
         constructor(column: Column);
         initialize(): void;
@@ -331,6 +375,8 @@ declare module TSGrid {
         const EDITED: string;
         const ERROR: string;
         const NEXT: string;
+        const CLICK: string;
+        const NAVIGATE: string;
     }
 }
 declare module TSGrid {

@@ -11,6 +11,7 @@
 /// <reference path="TSGrid/Events.ts" />
 /// <reference path="TSGrid/FocusableRow.ts" />
 /// <reference path="TSGrid/Grid.ts" />
+/// <reference path="TSGrid/GridPosition.ts" />
 /// <reference path="TSGrid/Header.ts" />
 /// <reference path="TSGrid/HeaderCell.ts" />
 /// <reference path="TSGrid/HeaderRow.ts" />

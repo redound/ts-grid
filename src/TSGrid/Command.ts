@@ -4,7 +4,11 @@ module TSGrid {
 
     export class Command {
 
+        public static ALLOWED_INPUT = [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 167, 177, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 91, 92, 93, 94, 95, 96, 97, 98, 99];
+
         public commandType:CommandTypes;
+
+        public event;
 
         public type;
 
@@ -38,6 +42,8 @@ module TSGrid {
 
         public setEvent(evt:any) {
 
+            this.event = evt;
+
             if (evt) {
                 _.extend(this, {
                     type: evt.type,
@@ -58,32 +64,48 @@ module TSGrid {
 
             if (this.keyCode === 38) {
 
-                this.commandType = CommandTypes.MOVE_UP;
+                this.commandType = CommandTypes.ARROW_UP;
+            }
+            else if (this.keyCode === 40) {
 
-            } else if (this.keyCode === 40) {
+                this.commandType = CommandTypes.ARROW_DOWN;
+            }
+            else if (this.shiftKey && this.keyCode === 9) {
 
-                this.commandType = CommandTypes.MOVE_DOWN;
+                this.commandType = CommandTypes.SHIFT_TAB;
+            }
+            else if (this.keyCode === 37) {
 
-            } else if (this.shiftKey && this.keyCode === 9) {
+                this.commandType = CommandTypes.ARROW_LEFT;
+            }
+            else if (!this.shiftKey && this.keyCode === 9) {
 
-                this.commandType = CommandTypes.MOVE_LEFT;
+                this.commandType = CommandTypes.TAB;
+            }
+            else if (this.keyCode === 39) {
 
-            } else if (!this.shiftKey && this.keyCode === 9) {
+                this.commandType = CommandTypes.ARROW_RIGHT;
+            }
+            else if (!this.shiftKey && this.keyCode === 13) {
 
-                this.commandType = CommandTypes.MOVE_RIGHT;
+                this.commandType = CommandTypes.ENTER;
+            }
+            else if (this.keyCode === 8) {
 
-            } else if (!this.shiftKey && this.keyCode === 13) {
-
-                this.commandType = CommandTypes.SAVE;
-
-            } else if (this.keyCode === 27) {
+                this.commandType = CommandTypes.BACKSPACE;
+            }
+            else if (this.keyCode === 27) {
 
                 this.commandType = CommandTypes.CANCEL;
-
-            } else {
+            }
+            else {
 
                 this.commandType = CommandTypes.NONE;
             }
+        }
+
+        public getEvent() {
+            return this.event;
         }
 
         public blurred() {
@@ -98,52 +120,84 @@ module TSGrid {
             return this.type === "click";
         }
 
+        public arrowUp() {
+            return this.commandType === CommandTypes.ARROW_UP;
+        }
+
+        public arrowDown() {
+            return this.commandType === CommandTypes.ARROW_DOWN;
+        }
+
+        public arrowLeft() {
+            return this.commandType === CommandTypes.ARROW_LEFT;
+        }
+
+        public arrowRight() {
+            return this.commandType === CommandTypes.ARROW_RIGHT;
+        }
+
+        public shiftTab() {
+            return this.commandType === CommandTypes.SHIFT_TAB;
+        }
+
+        public tab() {
+            return this.commandType === CommandTypes.TAB;
+        }
+
         /**
-         Up Arrow
-         @member TSGrid.Command
+         * Alias for arrowUp
+         * @returns {boolean}
          */
         public moveUp() {
-            return this.commandType === CommandTypes.MOVE_UP;
+            return this.arrowUp();
         }
 
         /**
-         Down Arrow
-         @member TSGrid.Command
+         * Alias for arrowDown
+         * @returns {boolean}
          */
         public moveDown() {
-            return this.commandType === CommandTypes.MOVE_DOWN;
+            return this.arrowDown();
         }
 
         /**
-         Shift Tab
-         @member TSGrid.Command
+         * Alias for arrowLeft, shiftTab
+         * @returns {boolean}
          */
         public moveLeft() {
-            return this.commandType === CommandTypes.MOVE_LEFT;
+            return (this.arrowLeft() || this.shiftTab());
         }
 
         /**
-         Tab
-         @member TSGrid.Command
+         * Alias for arrowRight, tab
+         * @returns {boolean}
          */
         public moveRight() {
-            return this.commandType === CommandTypes.MOVE_RIGHT;
+            return (this.arrowRight() || this.tab());
         }
 
-        /**
-         Enter
-         @member TSGrid.Command
-         */
-        public save() {
-            return this.commandType === CommandTypes.SAVE;
+        public enter() {
+            return this.commandType === CommandTypes.ENTER;
         }
 
-        /**
-         Esc
-         @member TSGrid.Command
-         */
+        public backspace() {
+            return this.commandType === CommandTypes.BACKSPACE;
+        }
+
         public cancel() {
             return this.commandType === CommandTypes.CANCEL;
+        }
+
+        public navigate() {
+            return (this.moveUp() || this.moveDown() || this.moveLeft() || this.moveRight());
+        }
+
+        public navigateWhileEdit() {
+            return (this.navigate() && !this.arrowLeft() && !this.arrowRight());
+        }
+
+        public input() {
+            return Command.ALLOWED_INPUT.indexOf(this.keyCode) !== -1;
         }
 
         /**
@@ -151,8 +205,7 @@ module TSGrid {
          @member TSGrid.Command
          */
         public passThru() {
-            return !(this.moveUp() || this.moveDown() || this.moveLeft() ||
-            this.moveRight() || this.save() || this.cancel());
+            return !(this.navigate() || this.enter() || this.cancel());
         }
 
         public static fromEvent(evt: any) {

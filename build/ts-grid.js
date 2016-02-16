@@ -108,7 +108,184 @@ var TSGrid;
     })(TSGrid.Events);
     TSGrid.View = View;
 })(TSGrid || (TSGrid = {}));
+var TSGrid;
+(function (TSGrid) {
+    (function (CommandTypes) {
+        CommandTypes[CommandTypes["NONE"] = 0] = "NONE";
+        CommandTypes[CommandTypes["ARROW_UP"] = 1] = "ARROW_UP";
+        CommandTypes[CommandTypes["ARROW_DOWN"] = 2] = "ARROW_DOWN";
+        CommandTypes[CommandTypes["ARROW_LEFT"] = 3] = "ARROW_LEFT";
+        CommandTypes[CommandTypes["ARROW_RIGHT"] = 4] = "ARROW_RIGHT";
+        CommandTypes[CommandTypes["TAB"] = 5] = "TAB";
+        CommandTypes[CommandTypes["SHIFT_TAB"] = 6] = "SHIFT_TAB";
+        CommandTypes[CommandTypes["ENTER"] = 7] = "ENTER";
+        CommandTypes[CommandTypes["BACKSPACE"] = 8] = "BACKSPACE";
+        CommandTypes[CommandTypes["SAVE"] = 9] = "SAVE";
+        CommandTypes[CommandTypes["CANCEL"] = 10] = "CANCEL";
+    })(TSGrid.CommandTypes || (TSGrid.CommandTypes = {}));
+    var CommandTypes = TSGrid.CommandTypes;
+})(TSGrid || (TSGrid = {}));
+///<reference path="CommandTypes.ts"/>
+var TSGrid;
+(function (TSGrid) {
+    var Command = (function () {
+        function Command() {
+        }
+        Command.prototype.setType = function (type) {
+            this.commandType = type;
+        };
+        Command.prototype.setEvent = function (evt) {
+            this.event = evt;
+            if (evt) {
+                _.extend(this, {
+                    type: evt.type,
+                    altKey: !!evt.altKey,
+                    "char": evt["char"],
+                    charCode: evt.charCode,
+                    ctrlKey: !!evt.ctrlKey,
+                    key: evt.key,
+                    keyCode: evt.keyCode,
+                    locale: evt.locale,
+                    location: evt.location,
+                    metaKey: !!evt.metaKey,
+                    repeat: !!evt.repeat,
+                    shiftKey: !!evt.shiftKey,
+                    which: evt.which
+                });
+            }
+            if (this.keyCode === 38) {
+                this.commandType = TSGrid.CommandTypes.ARROW_UP;
+            }
+            else if (this.keyCode === 40) {
+                this.commandType = TSGrid.CommandTypes.ARROW_DOWN;
+            }
+            else if (this.shiftKey && this.keyCode === 9) {
+                this.commandType = TSGrid.CommandTypes.SHIFT_TAB;
+            }
+            else if (this.keyCode === 37) {
+                this.commandType = TSGrid.CommandTypes.ARROW_LEFT;
+            }
+            else if (!this.shiftKey && this.keyCode === 9) {
+                this.commandType = TSGrid.CommandTypes.TAB;
+            }
+            else if (this.keyCode === 39) {
+                this.commandType = TSGrid.CommandTypes.ARROW_RIGHT;
+            }
+            else if (!this.shiftKey && this.keyCode === 13) {
+                this.commandType = TSGrid.CommandTypes.ENTER;
+            }
+            else if (this.keyCode === 8) {
+                this.commandType = TSGrid.CommandTypes.BACKSPACE;
+            }
+            else if (this.keyCode === 27) {
+                this.commandType = TSGrid.CommandTypes.CANCEL;
+            }
+            else {
+                this.commandType = TSGrid.CommandTypes.NONE;
+            }
+        };
+        Command.prototype.getEvent = function () {
+            return this.event;
+        };
+        Command.prototype.blurred = function () {
+            return this.type === "blur";
+        };
+        Command.prototype.submitted = function () {
+            return this.type === "submit";
+        };
+        Command.prototype.clicked = function () {
+            return this.type === "click";
+        };
+        Command.prototype.arrowUp = function () {
+            return this.commandType === TSGrid.CommandTypes.ARROW_UP;
+        };
+        Command.prototype.arrowDown = function () {
+            return this.commandType === TSGrid.CommandTypes.ARROW_DOWN;
+        };
+        Command.prototype.arrowLeft = function () {
+            return this.commandType === TSGrid.CommandTypes.ARROW_LEFT;
+        };
+        Command.prototype.arrowRight = function () {
+            return this.commandType === TSGrid.CommandTypes.ARROW_RIGHT;
+        };
+        Command.prototype.shiftTab = function () {
+            return this.commandType === TSGrid.CommandTypes.SHIFT_TAB;
+        };
+        Command.prototype.tab = function () {
+            return this.commandType === TSGrid.CommandTypes.TAB;
+        };
+        Command.prototype.moveUp = function () {
+            return this.arrowUp();
+        };
+        Command.prototype.moveDown = function () {
+            return this.arrowDown();
+        };
+        Command.prototype.moveLeft = function () {
+            return (this.arrowLeft() || this.shiftTab());
+        };
+        Command.prototype.moveRight = function () {
+            return (this.arrowRight() || this.tab());
+        };
+        Command.prototype.enter = function () {
+            return this.commandType === TSGrid.CommandTypes.ENTER;
+        };
+        Command.prototype.backspace = function () {
+            return this.commandType === TSGrid.CommandTypes.BACKSPACE;
+        };
+        Command.prototype.cancel = function () {
+            return this.commandType === TSGrid.CommandTypes.CANCEL;
+        };
+        Command.prototype.navigate = function () {
+            return (this.moveUp() || this.moveDown() || this.moveLeft() || this.moveRight());
+        };
+        Command.prototype.navigateWhileEdit = function () {
+            return (this.navigate() && !this.arrowLeft() && !this.arrowRight());
+        };
+        Command.prototype.input = function () {
+            return Command.ALLOWED_INPUT.indexOf(this.keyCode) !== -1;
+        };
+        Command.prototype.passThru = function () {
+            return !(this.navigate() || this.enter() || this.cancel());
+        };
+        Command.fromEvent = function (evt) {
+            var command = new Command();
+            command.setEvent(evt);
+            return command;
+        };
+        Command.fromType = function (type) {
+            var command = new Command();
+            command.setType(type);
+            return command;
+        };
+        Command.ALLOWED_INPUT = [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 167, 177, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 91, 92, 93, 94, 95, 96, 97, 98, 99];
+        return Command;
+    })();
+    TSGrid.Command = Command;
+})(TSGrid || (TSGrid = {}));
+var TSGrid;
+(function (TSGrid) {
+    var GridPosition = (function () {
+        function GridPosition(rowIndex, columnIndex) {
+            this.rowIndex = rowIndex;
+            this.columnIndex = columnIndex;
+        }
+        GridPosition.prototype.maxRowIndex = function (max) {
+            this.rowIndex = Math.min(max, Math.max(0, this.rowIndex));
+        };
+        GridPosition.prototype.maxColumnIndex = function (max) {
+            this.columnIndex = Math.min(max, Math.max(0, this.columnIndex));
+        };
+        GridPosition.prototype.same = function (gridPosition) {
+            return (gridPosition.rowIndex === this.rowIndex && gridPosition.columnIndex === this.columnIndex);
+        };
+        return GridPosition;
+    })();
+    TSGrid.GridPosition = GridPosition;
+})(TSGrid || (TSGrid = {}));
 ///<reference path="View.ts"/>
+///<reference path="Command.ts"/>
+///<reference path="CommandTypes.ts"/>
+///<reference path="GridPosition.ts"/>
 var TSGrid;
 (function (TSGrid) {
     var Body = (function (_super) {
@@ -136,6 +313,7 @@ var TSGrid;
         Body.prototype.setGrid = function (grid) {
             this._grid = grid;
             grid.events.on(TSGrid.TSGridEvents.EDITED, this.moveToNextCell, this);
+            grid.events.on(TSGrid.TSGridEvents.NAVIGATE, this.moveToNextCell, this);
         };
         Body.prototype.getGrid = function () {
             return this._grid;
@@ -201,6 +379,8 @@ var TSGrid;
             return _super.prototype.remove.call(this);
         };
         Body.prototype.moveToNextCell = function (evt) {
+            console.log('moveToNextCell', evt);
+            var grid = this.getGrid();
             var model = evt.params.model;
             var column = evt.params.column;
             var command = evt.params.command;
@@ -209,18 +389,27 @@ var TSGrid;
             var j = this.columns.indexOf(column);
             if (j === -1)
                 return this;
-            this.rows.get(i).cells.get(j).exitEditMode();
-            if (command.moveUp() || command.moveDown() || command.moveLeft() ||
-                command.moveRight() || command.save()) {
+            var currentCell = this.rows.get(i).cells.get(j);
+            if (command.navigate() || command.blurred()) {
                 var l = this.columns.length;
                 var maxOffset = l * this.items.length;
-                if (command.moveUp() || command.moveDown()) {
+                if (command.blurred()) {
+                    console.debug('BLURRED');
+                    currentCell.blur();
+                }
+                else if (command.moveUp() || command.moveDown()) {
                     m = i + (command.moveUp() ? -1 : 1);
+                    console.debug('MOVEUP MOVEDOWN');
                     var row = this.rows.get(m);
                     if (row) {
                         cell = row.cells.get(j);
                         if (TSGrid.callByNeed(cell.column.getEditable(), cell.column, model)) {
-                            cell.enterEditMode();
+                            var editMode = currentCell.editModeActive;
+                            currentCell.blur();
+                            cell.focus();
+                            if (editMode) {
+                                cell.enterEditMode();
+                            }
                             model.events.trigger(TSGrid.TSGridEvents.NEXT, {
                                 m: m,
                                 j: j,
@@ -237,6 +426,11 @@ var TSGrid;
                     }
                 }
                 else if (command.moveLeft() || command.moveRight()) {
+                    console.debug('MOVELEFT MOVERIGHT');
+                    var e = command.getEvent();
+                    if (e) {
+                        e.preventDefault();
+                    }
                     var right = command.moveRight();
                     for (var offset = i * l + j + (right ? 1 : -1); offset >= 0 && offset < maxOffset; right ? offset++ : offset--) {
                         m = ~~(offset / l);
@@ -245,7 +439,12 @@ var TSGrid;
                         renderable = TSGrid.callByNeed(cell.column.getRenderable(), cell.column, cell.model);
                         editable = TSGrid.callByNeed(cell.column.getEditable(), cell.column, model);
                         if (renderable && editable) {
-                            cell.enterEditMode();
+                            var editMode = currentCell.editModeActive;
+                            currentCell.blur();
+                            cell.focus();
+                            if (editMode) {
+                                cell.enterEditMode();
+                            }
                             model.events.trigger(TSGrid.TSGridEvents.NEXT, {
                                 m: m,
                                 j: n,
@@ -280,8 +479,13 @@ var TSGrid;
             _super.call(this);
             this.tagName = 'td';
             this.editor = TSGrid.InputCellEditor;
+            this.editModeActive = false;
+            this.focussed = false;
             this.viewEvents = {
-                "click": "enterEditMode"
+                "click": "click",
+                "blur": "blur",
+                "keypress": "processKeypress",
+                "keydown": "processKeydown"
             };
             this.column = column;
             this.model = model;
@@ -296,6 +500,7 @@ var TSGrid;
         }
         Cell.prototype.initialize = function () {
             _super.prototype.initialize.call(this);
+            this.model.events.on(TSGrid.TSGridEvents.EDITED, this.doneEditing, this);
             if (TSGrid.callByNeed(this.column.getEditable(), this.column, this.model))
                 this.$el.addClass("editable");
             if (TSGrid.callByNeed(this.column.getRenderable(), this.column, this.model))
@@ -307,8 +512,73 @@ var TSGrid;
             this.delegateEvents();
             return this;
         };
-        Cell.prototype.enterEditMode = function () {
+        Cell.prototype.processKeypress = function (evt) {
+            var command = TSGrid.Command.fromEvent(evt);
+            if (command.input()) {
+                var char = String.fromCharCode(evt.keyCode);
+                this.enterEditMode(false, char);
+            }
+        };
+        Cell.prototype.processKeydown = function (evt) {
+            var command = TSGrid.Command.fromEvent(evt);
+            if (command.enter()) {
+                this.enterEditMode();
+            }
+            if (command.backspace()) {
+                console.log('is backspace');
+                evt.preventDefault();
+                this.clear();
+            }
+            if (command.navigate()) {
+                var grid = this.column.getGrid();
+                grid.events.trigger(TSGrid.TSGridEvents.NAVIGATE, {
+                    column: this.column,
+                    model: this.model,
+                    command: command
+                });
+            }
+        };
+        Cell.prototype.click = function () {
+            if (this.focussed) {
+                this.enterEditMode();
+            }
+            else {
+                this.focus();
+            }
+        };
+        Cell.prototype.focus = function () {
+            this.focussed = true;
+            this.$el.attr('tabindex', 0);
+            this.$el.focus();
+            this.$el.addClass('active');
+            console.log('focus cell', this.model.get("title"));
+        };
+        Cell.prototype.blur = function () {
+            if (this.editModeActive) {
+                this.exitEditMode();
+            }
+            this.focussed = false;
+            console.log('blur cell', this.model.get("title"));
+            this.$el.removeClass('active');
+            this.$el.removeAttr('tabindex');
+        };
+        Cell.prototype.clear = function () {
+            this.model.set(this.column.getName(), null);
+            this.render();
+        };
+        Cell.prototype.doneEditing = function (evt) {
+            var column = evt.params.column;
+            var command = evt.params.command;
+            if ((command.enter() || command.submitted() || command.cancel()) && (column == null || column.getId() == this.column.getId())) {
+                if (this.editModeActive) {
+                    this.exitEditMode();
+                }
+                this.focus();
+            }
+        };
+        Cell.prototype.enterEditMode = function (selectAll, initialValue) {
             var _this = this;
+            if (selectAll === void 0) { selectAll = true; }
             var editable = TSGrid.callByNeed(this.column.getEditable(), this.column, this.model);
             if (editable) {
                 this.currentEditor = new this.editor(this.column, this.model, this.formatter);
@@ -319,13 +589,20 @@ var TSGrid;
                     editor: this.currentEditor
                 });
                 this.undelegateEvents();
+                if (initialValue) {
+                    this.currentEditor.setValue(initialValue);
+                }
                 this.currentEditor.render();
                 setTimeout(function () {
                     _this.$el.empty();
                     _this.$el.append(_this.currentEditor.$el);
                     _this.$el.addClass('editor');
-                    _this.currentEditor.activate();
+                    _this.currentEditor.$el.focus();
+                    if (selectAll) {
+                        _this.currentEditor.$el.select();
+                    }
                 }, 10);
+                this.editModeActive = true;
                 this.model.events.trigger(TSGrid.TSGridEvents.EDITING, {
                     model: this.model,
                     column: this.column,
@@ -340,6 +617,7 @@ var TSGrid;
             }
         };
         Cell.prototype.exitEditMode = function () {
+            this.editModeActive = false;
             this.$el.removeClass("error");
             this.currentEditor.remove();
             delete this.currentEditor;
@@ -372,44 +650,35 @@ var TSGrid;
             _super.prototype.initialize.call(this);
             this.model.events.on(TSGrid.TSGridEvents.EDITING, this.postRender, this);
         };
-        CellEditor.prototype.saveOrCancel = function (e, command) {
-            var newValue = this.editScope.vm.model;
-            var formatter = this.formatter;
+        CellEditor.prototype.setValue = function (value) {
+            this.value = value;
+        };
+        CellEditor.prototype.saveOrCancel = function (evt, command) {
+            if (!command) {
+                command = TSGrid.Command.fromEvent(evt);
+            }
             var model = this.model;
             var column = this.column;
             var grid = column.getGrid();
-            if (!command) {
-                command = TSGrid.Command.fromEvent(e);
-            }
-            if (command.clicked() || command.submitted() || command.moveUp() || command.moveDown() || command.moveLeft() || command.moveRight() ||
-                command.save() || command.blurred()) {
-                if (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
+            if (command.navigateWhileEdit() || command.enter() || command.clicked() || command.submitted() || command.blurred()) {
+                console.log('saveOrCancel', evt);
+                if (evt) {
+                    evt.preventDefault();
+                    evt.stopPropagation();
                 }
-                if (false) {
-                    var errorEvent = {
-                        model: model,
-                        column: column,
-                        val: newValue
-                    };
-                    grid.events.trigger(TSGrid.TSGridEvents.ERROR, errorEvent);
-                    model.events.trigger(TSGrid.TSGridEvents.ERROR, errorEvent);
-                }
-                else {
-                    model.set(column.getName(), newValue);
-                    var editedEvent = {
-                        model: model,
-                        column: column,
-                        command: command
-                    };
-                    grid.events.trigger(TSGrid.TSGridEvents.EDITED, editedEvent);
-                    model.events.trigger(TSGrid.TSGridEvents.EDITED, editedEvent);
-                }
+                var newValue = this.editScope.vm.model;
+                model.set(column.getName(), newValue);
+                var editedEvent = {
+                    model: model,
+                    column: column,
+                    command: command
+                };
+                grid.events.trigger(TSGrid.TSGridEvents.EDITED, editedEvent);
+                model.events.trigger(TSGrid.TSGridEvents.EDITED, editedEvent);
             }
             else if (command.cancel()) {
-                if (e) {
-                    e.stopPropagation();
+                if (evt) {
+                    evt.stopPropagation();
                 }
                 var editedEvent = {
                     model: model,
@@ -427,14 +696,14 @@ var TSGrid;
             var $rootScope = $injector.get('$rootScope');
             this.editScope = $rootScope.$new();
             this.editScope.vm = {
-                model: this.model.get(this.column.getName()),
+                model: !_.isUndefined(this.value) ? this.value : this.model.get(this.column.getName()),
                 editor: this
             };
             return $compile($el)(this.editScope);
         };
         CellEditor.prototype.postRender = function (evt) {
             var column = evt.params.column;
-            if (column == null || column.getName() == this.column.getName()) {
+            if (column == null || column.getId() == this.column.getId()) {
                 this.$el.focus();
             }
             return this;
@@ -449,10 +718,6 @@ var TSGrid;
             this.destroyScope();
             _super.prototype.remove.call(this);
             return this;
-        };
-        CellEditor.prototype.activate = function () {
-            this.$el.focus();
-            this.$el.select();
         };
         return CellEditor;
     })(TSGrid.View);
@@ -481,7 +746,11 @@ var TSGrid;
         function Column() {
             this._renderable = true;
             this._editable = false;
+            this._uniqId = parseInt(_.uniqueId());
         }
+        Column.prototype.getId = function () {
+            return this._uniqId;
+        };
         Column.prototype.setGrid = function (grid) {
             this._grid = grid;
         };
@@ -542,113 +811,6 @@ var TSGrid;
         return Column;
     })();
     TSGrid.Column = Column;
-})(TSGrid || (TSGrid = {}));
-var TSGrid;
-(function (TSGrid) {
-    (function (CommandTypes) {
-        CommandTypes[CommandTypes["NONE"] = 0] = "NONE";
-        CommandTypes[CommandTypes["MOVE_UP"] = 1] = "MOVE_UP";
-        CommandTypes[CommandTypes["MOVE_DOWN"] = 2] = "MOVE_DOWN";
-        CommandTypes[CommandTypes["MOVE_LEFT"] = 3] = "MOVE_LEFT";
-        CommandTypes[CommandTypes["MOVE_RIGHT"] = 4] = "MOVE_RIGHT";
-        CommandTypes[CommandTypes["SAVE"] = 5] = "SAVE";
-        CommandTypes[CommandTypes["CANCEL"] = 6] = "CANCEL";
-    })(TSGrid.CommandTypes || (TSGrid.CommandTypes = {}));
-    var CommandTypes = TSGrid.CommandTypes;
-})(TSGrid || (TSGrid = {}));
-///<reference path="CommandTypes.ts"/>
-var TSGrid;
-(function (TSGrid) {
-    var Command = (function () {
-        function Command() {
-        }
-        Command.prototype.setType = function (type) {
-            this.commandType = type;
-        };
-        Command.prototype.setEvent = function (evt) {
-            if (evt) {
-                _.extend(this, {
-                    type: evt.type,
-                    altKey: !!evt.altKey,
-                    "char": evt["char"],
-                    charCode: evt.charCode,
-                    ctrlKey: !!evt.ctrlKey,
-                    key: evt.key,
-                    keyCode: evt.keyCode,
-                    locale: evt.locale,
-                    location: evt.location,
-                    metaKey: !!evt.metaKey,
-                    repeat: !!evt.repeat,
-                    shiftKey: !!evt.shiftKey,
-                    which: evt.which
-                });
-            }
-            if (this.keyCode === 38) {
-                this.commandType = TSGrid.CommandTypes.MOVE_UP;
-            }
-            else if (this.keyCode === 40) {
-                this.commandType = TSGrid.CommandTypes.MOVE_DOWN;
-            }
-            else if (this.shiftKey && this.keyCode === 9) {
-                this.commandType = TSGrid.CommandTypes.MOVE_LEFT;
-            }
-            else if (!this.shiftKey && this.keyCode === 9) {
-                this.commandType = TSGrid.CommandTypes.MOVE_RIGHT;
-            }
-            else if (!this.shiftKey && this.keyCode === 13) {
-                this.commandType = TSGrid.CommandTypes.SAVE;
-            }
-            else if (this.keyCode === 27) {
-                this.commandType = TSGrid.CommandTypes.CANCEL;
-            }
-            else {
-                this.commandType = TSGrid.CommandTypes.NONE;
-            }
-        };
-        Command.prototype.blurred = function () {
-            return this.type === "blur";
-        };
-        Command.prototype.submitted = function () {
-            return this.type === "submit";
-        };
-        Command.prototype.clicked = function () {
-            return this.type === "click";
-        };
-        Command.prototype.moveUp = function () {
-            return this.commandType === TSGrid.CommandTypes.MOVE_UP;
-        };
-        Command.prototype.moveDown = function () {
-            return this.commandType === TSGrid.CommandTypes.MOVE_DOWN;
-        };
-        Command.prototype.moveLeft = function () {
-            return this.commandType === TSGrid.CommandTypes.MOVE_LEFT;
-        };
-        Command.prototype.moveRight = function () {
-            return this.commandType === TSGrid.CommandTypes.MOVE_RIGHT;
-        };
-        Command.prototype.save = function () {
-            return this.commandType === TSGrid.CommandTypes.SAVE;
-        };
-        Command.prototype.cancel = function () {
-            return this.commandType === TSGrid.CommandTypes.CANCEL;
-        };
-        Command.prototype.passThru = function () {
-            return !(this.moveUp() || this.moveDown() || this.moveLeft() ||
-                this.moveRight() || this.save() || this.cancel());
-        };
-        Command.fromEvent = function (evt) {
-            var command = new Command();
-            command.setEvent(evt);
-            return command;
-        };
-        Command.fromType = function (type) {
-            var command = new Command();
-            command.setType(type);
-            return command;
-        };
-        return Command;
-    })();
-    TSGrid.Command = Command;
 })(TSGrid || (TSGrid = {}));
 ///<reference path="View.ts"/>
 var TSGrid;
@@ -1057,6 +1219,8 @@ var TSGrid;
         TSGridEvents.EDITED = "tsGrid:edited";
         TSGridEvents.ERROR = "tsGrid:error";
         TSGridEvents.NEXT = "tsGrid:next";
+        TSGridEvents.CLICK = "tsGrid:click";
+        TSGridEvents.NAVIGATE = "tsGrid:navigate";
     })(TSGridEvents = TSGrid.TSGridEvents || (TSGrid.TSGridEvents = {}));
 })(TSGrid || (TSGrid = {}));
 ///<reference path="View.ts"/>
@@ -1109,6 +1273,7 @@ var TSGrid;
 /// <reference path="TSGrid/Events.ts" />
 /// <reference path="TSGrid/FocusableRow.ts" />
 /// <reference path="TSGrid/Grid.ts" />
+/// <reference path="TSGrid/GridPosition.ts" />
 /// <reference path="TSGrid/Header.ts" />
 /// <reference path="TSGrid/HeaderCell.ts" />
 /// <reference path="TSGrid/HeaderRow.ts" />
