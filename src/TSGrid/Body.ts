@@ -161,10 +161,6 @@ module TSGrid {
 
         public moveToNextCell(evt) {
 
-            console.log('moveToNextCell', evt);
-
-            var grid = this.getGrid();
-
             var model = evt.params.model;
             var column = evt.params.column;
             var command: Command = evt.params.command;
@@ -186,14 +182,10 @@ module TSGrid {
 
                 if (command.blurred()) {
 
-                    console.debug('BLURRED');
-
                     currentCell.blur();
                 }
                 else if (command.moveUp() || command.moveDown()) {
                     m = i + (command.moveUp() ? -1 : 1);
-
-                    console.debug('MOVEUP MOVEDOWN');
 
                     var row = this.rows.get(m);
                     if (row) {
@@ -221,8 +213,6 @@ module TSGrid {
                     }
                 }
                 else if (command.moveLeft() || command.moveRight()) {
-
-                    console.debug('MOVELEFT MOVERIGHT');
 
                     var e = command.getEvent();
 
@@ -267,10 +257,6 @@ module TSGrid {
             }
 
             return this;
-        }
-
-        public reset() {
-
         }
     }
 }

@@ -117,7 +117,6 @@ declare module TSGrid {
         render(): Body;
         remove(): View;
         moveToNextCell(evt: any): Body;
-        reset(): void;
     }
 }
 declare module TSGrid {
@@ -160,16 +159,24 @@ declare module TSGrid {
     class CellEditor extends View {
         column: Column;
         model: TSCore.Data.Model;
-        scope: TSCore.Data.Dictionary<string, any>;
+        editorName: string;
+        options: TSCore.Data.Dictionary<string, any>;
         $scope: any;
         value: any;
-        constructor(column: Column, model: TSCore.Data.Model);
+        protected _autoFocus: boolean;
+        protected _selectAll: boolean;
+        constructor(column: Column, model: TSCore.Data.Model, editorName: string);
         initialize(): void;
+        autoFocus(): CellEditor;
+        shouldAutoFocus(): boolean;
+        selectAll(): CellEditor;
+        shouldSelectAll(): boolean;
         setValue(value: any): void;
-        scopeValue(key: string, value: any): CellEditor;
-        saveOrCancel(evt: any, command?: Command): void;
+        option(key: string, value: any): CellEditor;
+        save(commandType: CommandTypes, value: any): void;
+        cancel(commandType: CommandTypes): void;
+        render(): CellEditor;
         compile($el: JQuery): any;
-        postRender(evt: any): CellEditor;
         destroyScope(): void;
         remove(): CellEditor;
     }
@@ -282,16 +289,6 @@ declare module TSGrid {
     }
 }
 declare module TSGrid {
-    class InputCellEditor extends CellEditor {
-        tagName: string;
-        attributes: any;
-        viewEvents: any;
-        constructor(column: Column, model: TSCore.Data.Model);
-        initialize(): void;
-        render(): InputCellEditor;
-    }
-}
-declare module TSGrid {
     var Extension: {};
     function resolveNameToClass<T>(name: any, suffix?: string): T;
     function callByNeed(...arg: any[]): any;
@@ -304,28 +301,5 @@ declare module TSGrid {
         const ERROR: string;
         const NEXT: string;
         const NAVIGATE: string;
-    }
-}
-declare module TSGrid {
-    class TextCellEditor extends CellEditor {
-        tagName: string;
-        viewEvents: any;
-        constructor(column: Column, model: TSCore.Data.Model);
-        initialize(): void;
-        render(): TextCellEditor;
-    }
-}
-declare module TSGrid {
-    class TypeaheadCellEditor extends CellEditor {
-        tagName: string;
-        attributes: any;
-        viewEvents: any;
-        constructor(column: Column, model: TSCore.Data.Model);
-        initialize(): void;
-        saveOrCancel(evt: any): void;
-        openTypehead(): void;
-        typeaheadOpened(): any;
-        onSelect($item: any, $model: any, $label: any, $event: any): void;
-        render(): TypeaheadCellEditor;
     }
 }

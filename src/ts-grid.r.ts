@@ -13,10 +13,7 @@
 /// <reference path="TSGrid/Header.ts" />
 /// <reference path="TSGrid/HeaderCell.ts" />
 /// <reference path="TSGrid/HeaderRow.ts" />
-/// <reference path="TSGrid/InputCellEditor.ts" />
 /// <reference path="TSGrid/Row.ts" />
 /// <reference path="TSGrid/TSGrid.ts" />
-/// <reference path="TSGrid/TextCellEditor.ts" />
-/// <reference path="TSGrid/TypeaheadCellEditor.ts" />
 /// <reference path="TSGrid/View.ts" />
 //grunt-end

@@ -74,11 +74,12 @@ module TSGrid {
             var command = Command.fromEvent(evt);
 
             if (command.enter()) {
+
                 this.enterEditMode();
             }
 
             if (command.backspace()) {
-                console.log('is backspace');
+
                 evt.preventDefault();
                 this.clear();
             }
@@ -109,7 +110,6 @@ module TSGrid {
             this.$el.attr('tabindex', 0);
             this.$el.focus();
             this.$el.addClass('active');
-            console.log('focus cell', this.model.get("title"));
         }
 
         public blur() {
@@ -119,7 +119,6 @@ module TSGrid {
             }
 
             this.focussed = false;
-            console.log('blur cell', this.model.get("title"));
             this.$el.removeClass('active');
             this.$el.removeAttr('tabindex');
         }
@@ -158,8 +157,6 @@ module TSGrid {
                     this.model
                 );
 
-                console.log('editor!', this.currentEditor);
-
                 this.model.events.trigger(TSGridEvents.EDIT, {
                     model: this.model,
                     column: this.column,
@@ -174,6 +171,12 @@ module TSGrid {
                     this.currentEditor.setValue(initialValue);
                 }
 
+                this.currentEditor.autoFocus();
+
+                if (selectAll) {
+                    this.currentEditor.selectAll();
+                }
+
                 this.currentEditor.render();
 
                 setTimeout(() => {
@@ -181,11 +184,6 @@ module TSGrid {
                     this.$el.empty();
                     this.$el.append(this.currentEditor.$el);
                     this.$el.addClass('editor');
-                    this.currentEditor.$el.focus();
-
-                    if (selectAll) {
-                        this.currentEditor.$el.select();
-                    }
 
                 }, 10);
 

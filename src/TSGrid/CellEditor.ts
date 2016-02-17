@@ -12,81 +12,98 @@ module TSGrid {
 
         public model: TSCore.Data.Model;
 
-        public scope: TSCore.Data.Dictionary<string, any> = new TSCore.Data.Dictionary<string, any>();
+        public editorName: string;
+
+        public options: TSCore.Data.Dictionary<string, any> = new TSCore.Data.Dictionary<string, any>();
 
         public $scope;
 
         public value: any;
 
-        public constructor(column: Column, model: TSCore.Data.Model) {
+        protected _autoFocus: boolean = false;
 
+        protected _selectAll: boolean = false;
+
+        public constructor(column: Column, model: TSCore.Data.Model, editorName: string) {
             super();
-
             this.column = column;
             this.model = model;
+            this.editorName = editorName;
+            this.initialize();
         }
 
         public initialize() {
-
             super.initialize();
+        }
+
+        public autoFocus(): CellEditor {
+            this._autoFocus = true;
+            return this;
+        }
+
+        public shouldAutoFocus(): boolean {
+            return this._autoFocus;
+        }
+
+        public selectAll(): CellEditor {
+            this._selectAll = true;
+            return this;
+        }
+
+        public shouldSelectAll(): boolean {
+            return this._selectAll;
         }
 
         public setValue(value: any) {
             this.value = value;
         }
 
-        public scopeValue(key: string, value: any): CellEditor {
-            this.scope.set(key, value);
+        public option(key: string, value: any): CellEditor {
+            this.options.set(key, value);
             return this;
         }
 
-        public saveOrCancel(evt, command?: Command) {
-
-            if (!command) {
-                command = Command.fromEvent(evt);
-            }
+        public save(commandType: CommandTypes, value: any) {
 
             var model = this.model;
             var column = this.column;
             var grid = column.getGrid();
 
-            if (command.navigateWhileEdit() || command.enter() || command.clicked() || command.submitted() || command.blurred()) {
+            model.set(column.getName(), value);
 
-                console.log('saveOrCancel', evt);
+            var editedEvent = {
+                model: model,
+                column: column,
+                command: Command.fromType(commandType),
+            };
 
-                if (evt) {
-                    evt.preventDefault();
-                    evt.stopPropagation();
-                }
+            grid.events.trigger(TSGridEvents.EDITED, editedEvent);
+            model.events.trigger(TSGridEvents.EDITED, editedEvent);
+        }
 
-                var newValue = this.$scope.vm.model;
-                model.set(column.getName(), newValue);
-                var editedEvent = {
-                    model: model,
-                    column: column,
-                    command: command
-                };
+        public cancel(commandType: CommandTypes) {
 
-                grid.events.trigger(TSGridEvents.EDITED, editedEvent);
-                model.events.trigger(TSGridEvents.EDITED, editedEvent);
-            }
-            // esc
-            else if (command.cancel()) {
+            var model = this.model;
+            var column = this.column;
+            var grid = column.getGrid();
 
-                // undo
-                if (evt) {
-                    evt.stopPropagation();
-                }
+            var editedEvent = {
+                model: model,
+                column: column,
+                command: Command.fromType(commandType)
+            };
 
-                var editedEvent = {
-                    model: model,
-                    column: column,
-                    command: command
-                };
+            grid.events.trigger(TSGridEvents.EDITED, editedEvent);
+            model.events.trigger(TSGridEvents.EDITED, editedEvent);
+        }
 
-                grid.events.trigger(TSGridEvents.EDITED, editedEvent);
-                model.events.trigger(TSGridEvents.EDITED, editedEvent);
-            }
+        public render() {
+
+            this.$el.attr(this.editorName, '');
+            this.$el.attr('cell-editor-options', 'options');
+            this.compile(this.$el);
+
+            return this;
         }
 
         public compile($el: JQuery) {
@@ -99,23 +116,12 @@ module TSGrid {
             var $rootScope = $injector.get('$rootScope');
 
             this.$scope = $rootScope.$new();
-            this.scope.set('model', !_.isUndefined(this.value) ? this.value : this.model.get(this.column.getName()));
-            this.scope.set('editor', this);
+            this.options.set('model', !_.isUndefined(this.value) ? this.value : this.model.get(this.column.getName()));
+            this.options.set('editor', this);
 
-            this.$scope.vm = this.scope.toObject();
+            this.$scope.options = this.options.toObject();
 
             return $compile($el)(this.$scope);
-        }
-
-        public postRender(evt) {
-
-            var column = evt.params.column;
-
-            if (column == null || column.getId() == this.column.getId()) {
-                this.$el.focus();
-            }
-
-            return this;
         }
 
         public destroyScope() {
