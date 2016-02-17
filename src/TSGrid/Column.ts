@@ -1,3 +1,6 @@
+///<reference path="Cell.ts"/>
+
+
 module TSGrid {
 
     export class Column {
@@ -14,9 +17,9 @@ module TSGrid {
 
         protected _editable: boolean = false;
 
-        protected _cell: string;
+        protected _editor: any;
 
-        protected _formatter: string;
+        protected _formatter: any;
 
         public constructor() {
             this._uniqId = parseInt(<any>_.uniqueId());
@@ -70,34 +73,28 @@ module TSGrid {
             return this._editable;
         }
 
-        public cell(cell: string): Column {
-            this._cell = cell;
-            return this;
-        }
-
-        public getCell(): string {
-            return this._cell;
-        }
-
-        public getCellClass(): ICell {
-            return TSGrid.resolveNameToClass<ICell>(this._cell + '-cell');
-        }
-
-        public getHeaderCellClass(): ICell {
+        public getHeaderType(): ICell {
             return TSGrid.resolveNameToClass<ICell>('header-cell');
         }
 
-        public formatter(formatter: string): Column {
+        public editor(editor: any): Column {
+
+            this._editor = editor;
+            return this;
+        }
+
+        public getEditor(): any {
+
+            return this._editor;
+        }
+
+        public formatter(formatter: any): Column {
             this._formatter = formatter;
             return this;
         }
 
         public getFormatter() {
             return this._formatter;
-        }
-
-        public getFormatterClass() {
-            return TSGrid.resolveNameToClass('string-formatter');
         }
     }
 }

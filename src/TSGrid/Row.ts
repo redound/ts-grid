@@ -37,9 +37,8 @@ module TSGrid {
         }
 
         public makeCell(column: Column) {
-            var cell = column.getCellClass();
 
-            return new cell(
+            return new Cell(
                 column,
                 this.model
             );

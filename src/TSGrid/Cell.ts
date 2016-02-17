@@ -3,20 +3,12 @@
 module TSGrid {
 
     export interface ICell {
-        new (column: Column, model: TSCore.Data.Model, editor?: ICellEditor, formatter?: CellFormatter): Cell;
-    }
-
-    export interface CellOptions {
-        column?: Column
+        new (column: Column, model: TSCore.Data.Model): Cell;
     }
 
     export class Cell extends View {
 
         public tagName: string = 'td';
-
-        public formatter: CellFormatter;
-
-        public editor: ICellEditor = InputCellEditor;
 
         public editModeActive: boolean = false;
 
@@ -35,21 +27,13 @@ module TSGrid {
 
         public model: TSCore.Data.Model;
 
-        public constructor(column: Column, model: TSCore.Data.Model, editor?: ICellEditor, formatter?: ICellFormatter) {
+        public constructor(column: Column, model: TSCore.Data.Model) {
 
             super();
 
             this.column = column;
 
             this.model = model;
-
-            this.editor = TSGrid.resolveNameToClass<ICellEditor>(this.editor, "CellEditor");
-
-            if (formatter) {
-                this.formatter = new formatter();
-            } else {
-                this.formatter = new StringFormatter();
-            }
 
             this.initialize();
         }
@@ -66,7 +50,10 @@ module TSGrid {
 
         public render(): Cell {
             this.$el.empty();
-            this.$el.text(this.formatter.fromRaw(this.model.get(this.column.getName()), this.model));
+            var formatter = this.column.getFormatter();
+            var modelValue = this.model.get(this.column.getName());
+            var value = formatter ? formatter(modelValue) : modelValue;
+            this.$el.text(value);
             this.delegateEvents();
             return this;
         }
@@ -87,11 +74,12 @@ module TSGrid {
             var command = Command.fromEvent(evt);
 
             if (command.enter()) {
+
                 this.enterEditMode();
             }
 
             if (command.backspace()) {
-                console.log('is backspace');
+
                 evt.preventDefault();
                 this.clear();
             }
@@ -122,7 +110,6 @@ module TSGrid {
             this.$el.attr('tabindex', 0);
             this.$el.focus();
             this.$el.addClass('active');
-            console.log('focus cell', this.model.get("title"));
         }
 
         public blur() {
@@ -132,7 +119,6 @@ module TSGrid {
             }
 
             this.focussed = false;
-            console.log('blur cell', this.model.get("title"));
             this.$el.removeClass('active');
             this.$el.removeAttr('tabindex');
         }
@@ -164,10 +150,11 @@ module TSGrid {
 
             if (editable) {
 
-                this.currentEditor = new this.editor(
+                var editorFactory = this.column.getEditor();
+
+                this.currentEditor = editorFactory(
                     this.column,
-                    this.model,
-                    this.formatter
+                    this.model
                 );
 
                 this.model.events.trigger(TSGridEvents.EDIT, {
@@ -184,6 +171,12 @@ module TSGrid {
                     this.currentEditor.setValue(initialValue);
                 }
 
+                this.currentEditor.autoFocus();
+
+                if (selectAll) {
+                    this.currentEditor.selectAll();
+                }
+
                 this.currentEditor.render();
 
                 setTimeout(() => {
@@ -191,11 +184,6 @@ module TSGrid {
                     this.$el.empty();
                     this.$el.append(this.currentEditor.$el);
                     this.$el.addClass('editor');
-                    this.currentEditor.$el.focus();
-
-                    if (selectAll) {
-                        this.currentEditor.$el.select();
-                    }
 
                 }, 10);
 

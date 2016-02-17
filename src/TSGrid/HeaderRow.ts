@@ -7,7 +7,7 @@ module TSGrid {
 
         public makeCell(column: Column) {
 
-            var headerCell = column.getHeaderCellClass();
+            var headerCell = column.getHeaderType();
 
             return new headerCell(
                 column,

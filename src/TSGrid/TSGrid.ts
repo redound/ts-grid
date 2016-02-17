@@ -40,7 +40,6 @@ module TSGrid {
         export const EDITED = "tsGrid:edited";
         export const ERROR = "tsGrid:error";
         export const NEXT = "tsGrid:next";
-        export const CLICK = "tsGrid:click";
         export const NAVIGATE = "tsGrid:navigate";
     }
 }

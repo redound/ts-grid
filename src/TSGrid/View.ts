@@ -1,12 +1,10 @@
-///<reference path="Events.ts"/>
-
 
 module TSGrid {
 
     /**
      * IMPORTANT: This should be a port from Backbone's View concept
      */
-    export class View extends Events {
+    export class View {
 
         public static DELEGATE_EVENT_SPLITTER = /^(\S+)\s*(.*)$/;
 
@@ -32,8 +30,6 @@ module TSGrid {
          * if an existing element is not provided.
          */
         public constructor() {
-
-            super();
 
             this.cid = _.uniqueId('view');
         }
@@ -71,7 +67,6 @@ module TSGrid {
          */
         public remove() {
             this._removeElement();
-            //this.stopListenening();
             return this;
         }
 
