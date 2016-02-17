@@ -167,6 +167,7 @@ declare module TSGrid {
         protected _selectAll: boolean;
         constructor(column: Column, model: TSCore.Data.Model, editorName: string);
         initialize(): void;
+        getEditorName(): string;
         autoFocus(): CellEditor;
         shouldAutoFocus(): boolean;
         selectAll(): CellEditor;

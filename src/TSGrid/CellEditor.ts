@@ -36,6 +36,10 @@ module TSGrid {
             super.initialize();
         }
 
+        public getEditorName(): string {
+            return this.editorName;
+        }
+
         public autoFocus(): CellEditor {
             this._autoFocus = true;
             return this;

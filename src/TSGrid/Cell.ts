@@ -184,6 +184,7 @@ module TSGrid {
                     this.$el.empty();
                     this.$el.append(this.currentEditor.$el);
                     this.$el.addClass('editor');
+                    this.$el.addClass(this.currentEditor.getEditorName());
 
                 }, 10);
 
@@ -216,6 +217,7 @@ module TSGrid {
 
             this.editModeActive = false;
             this.$el.removeClass("error");
+            this.$el.removeClass(this.currentEditor.getEditorName());
             this.currentEditor.remove();
             delete this.currentEditor;
             this.$el.removeClass("editor");

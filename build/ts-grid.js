@@ -571,6 +571,7 @@ var TSGrid;
                     _this.$el.empty();
                     _this.$el.append(_this.currentEditor.$el);
                     _this.$el.addClass('editor');
+                    _this.$el.addClass(_this.currentEditor.getEditorName());
                 }, 10);
                 this.editModeActive = true;
                 this.model.events.trigger(TSGrid.TSGridEvents.EDITING, {
@@ -589,6 +590,7 @@ var TSGrid;
         Cell.prototype.exitEditMode = function () {
             this.editModeActive = false;
             this.$el.removeClass("error");
+            this.$el.removeClass(this.currentEditor.getEditorName());
             this.currentEditor.remove();
             delete this.currentEditor;
             this.$el.removeClass("editor");
@@ -622,6 +624,9 @@ var TSGrid;
         }
         CellEditor.prototype.initialize = function () {
             _super.prototype.initialize.call(this);
+        };
+        CellEditor.prototype.getEditorName = function () {
+            return this.editorName;
         };
         CellEditor.prototype.autoFocus = function () {
             this._autoFocus = true;
