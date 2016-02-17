@@ -36,7 +36,7 @@ module TSGrid {
 
             this.$el.append(label);
             this.$el.addClass(this.column.getName());
-
+            this.$el.attr('width', this.column.getWidth());
             this.delegateEvents();
 
             return this;

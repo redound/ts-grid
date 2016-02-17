@@ -54,6 +54,7 @@ module TSGrid {
             var modelValue = this.model.get(this.column.getName());
             var value = formatter ? formatter(modelValue) : modelValue;
             this.$el.text(value);
+            this.$el.attr('width', this.column.getWidth());
             this.delegateEvents();
             return this;
         }

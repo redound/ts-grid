@@ -45,10 +45,17 @@ module TSGrid {
 
         public render() {
 
-            var table = document.createElement('table');
-            table.appendChild(this.row.render().el);
+            var $table = $('<table />');
+            $table.append(this.row.render().$el);
 
-            this.el.appendChild(table);
+            var tableWidth = 0;
+            this.columns.each(column => {
+                tableWidth += column.getWidth();
+            });
+
+            $table.attr('width', tableWidth);
+
+            this.$el.append($table);
 
             this.delegateEvents();
             return this;

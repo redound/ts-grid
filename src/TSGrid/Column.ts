@@ -9,6 +9,8 @@ module TSGrid {
 
         protected _grid: Grid;
 
+        protected _width: number;
+
         protected _name: string;
 
         protected _label: string;
@@ -35,6 +37,15 @@ module TSGrid {
 
         public getGrid(): Grid {
             return this._grid;
+        }
+
+        public width(width: number): Column {
+            this._width = width;
+            return this;
+        }
+
+        public getWidth(): number {
+            return this._width;
         }
 
         public name(name: string): Column {

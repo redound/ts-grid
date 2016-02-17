@@ -186,6 +186,7 @@ declare module TSGrid {
     class Column {
         protected _uniqId: number;
         protected _grid: Grid;
+        protected _width: number;
         protected _name: string;
         protected _label: string;
         protected _renderable: boolean;
@@ -196,6 +197,8 @@ declare module TSGrid {
         getId(): number;
         setGrid(grid: Grid): void;
         getGrid(): Grid;
+        width(width: number): Column;
+        getWidth(): number;
         name(name: string): Column;
         getName(): string;
         label(label: string): Column;

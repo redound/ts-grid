@@ -346,13 +346,18 @@ var TSGrid;
         };
         Body.prototype.render = function () {
             this.$el.empty();
-            var table = document.createElement('table');
-            var tbody = document.createElement('tbody');
-            table.appendChild(tbody);
+            var $table = $('<table />');
+            var $tbody = $('<tbody />');
+            $table.append($tbody);
             this.rows.each(function (row) {
-                tbody.appendChild(row.render().el);
+                $tbody.append(row.render().$el);
             });
-            this.el.appendChild(table);
+            var tableWidth = 0;
+            this.columns.each(function (column) {
+                tableWidth += column.getWidth();
+            });
+            $table.attr('width', tableWidth);
+            this.$el.append($table);
             this.delegateEvents();
             return this;
         };
@@ -380,6 +385,10 @@ var TSGrid;
                 }
                 else if (command.moveUp() || command.moveDown()) {
                     m = i + (command.moveUp() ? -1 : 1);
+                    var e = command.getEvent();
+                    if (e) {
+                        e.preventDefault();
+                    }
                     var row = this.rows.get(m);
                     if (row) {
                         cell = row.cells.get(j);
@@ -481,6 +490,7 @@ var TSGrid;
             var modelValue = this.model.get(this.column.getName());
             var value = formatter ? formatter(modelValue) : modelValue;
             this.$el.text(value);
+            this.$el.attr('width', this.column.getWidth());
             this.delegateEvents();
             return this;
         };
@@ -724,6 +734,13 @@ var TSGrid;
         Column.prototype.getGrid = function () {
             return this._grid;
         };
+        Column.prototype.width = function (width) {
+            this._width = width;
+            return this;
+        };
+        Column.prototype.getWidth = function () {
+            return this._width;
+        };
         Column.prototype.name = function (name) {
             this._name = name;
             return this;
@@ -934,9 +951,14 @@ var TSGrid;
             return this._grid;
         };
         Header.prototype.render = function () {
-            var table = document.createElement('table');
-            table.appendChild(this.row.render().el);
-            this.el.appendChild(table);
+            var $table = $('<table />');
+            $table.append(this.row.render().$el);
+            var tableWidth = 0;
+            this.columns.each(function (column) {
+                tableWidth += column.getWidth();
+            });
+            $table.attr('width', tableWidth);
+            this.$el.append($table);
             this.delegateEvents();
             return this;
         };
@@ -967,6 +989,7 @@ var TSGrid;
             var label = document.createTextNode(this.column.getLabel());
             this.$el.append(label);
             this.$el.addClass(this.column.getName());
+            this.$el.attr('width', this.column.getWidth());
             this.delegateEvents();
             return this;
         };

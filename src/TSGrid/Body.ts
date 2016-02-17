@@ -137,15 +137,23 @@ module TSGrid {
 
             this.$el.empty();
 
-            var table = document.createElement('table');
-            var tbody = document.createElement('tbody');
-            table.appendChild(tbody);
+            var $table = $('<table />');
+            var $tbody = $('<tbody />');
+
+            $table.append($tbody);
 
             this.rows.each(row => {
-                tbody.appendChild(row.render().el);
+                $tbody.append(row.render().$el);
             });
 
-            this.el.appendChild(table);
+            var tableWidth = 0;
+            this.columns.each(column => {
+                tableWidth += column.getWidth()
+            });
+
+            $table.attr('width', tableWidth);
+
+            this.$el.append($table);
 
             this.delegateEvents();
 
@@ -186,6 +194,12 @@ module TSGrid {
                 }
                 else if (command.moveUp() || command.moveDown()) {
                     m = i + (command.moveUp() ? -1 : 1);
+
+                    var e = command.getEvent();
+
+                    if (e) {
+                        e.preventDefault();
+                    }
 
                     var row = this.rows.get(m);
                     if (row) {
