@@ -3,7 +3,7 @@
 module TSGrid {
 
     export interface ICellEditor {
-        new (column: Column, model: TSCore.Data.Model, formatter: CellFormatter): CellEditor;
+        new (column: Column, model: TSCore.Data.Model): CellEditor;
     }
 
     export class CellEditor extends View {
@@ -12,30 +12,32 @@ module TSGrid {
 
         public model: TSCore.Data.Model;
 
-        public formatter: CellFormatter;
+        public scope: TSCore.Data.Dictionary<string, any> = new TSCore.Data.Dictionary<string, any>();
 
-        public editScope;
+        public $scope;
 
         public value: any;
 
-        public constructor(column: Column, model: TSCore.Data.Model, formatter: CellFormatter) {
+        public constructor(column: Column, model: TSCore.Data.Model) {
 
             super();
 
             this.column = column;
             this.model = model;
-            this.formatter = formatter;
         }
 
         public initialize() {
 
             super.initialize();
-
-            this.model.events.on(TSGridEvents.EDITING, this.postRender, this);
         }
 
         public setValue(value: any) {
             this.value = value;
+        }
+
+        public scopeValue(key: string, value: any): CellEditor {
+            this.scope.set(key, value);
+            return this;
         }
 
         public saveOrCancel(evt, command?: Command) {
@@ -57,7 +59,7 @@ module TSGrid {
                     evt.stopPropagation();
                 }
 
-                var newValue = this.editScope.vm.model;
+                var newValue = this.$scope.vm.model;
                 model.set(column.getName(), newValue);
                 var editedEvent = {
                     model: model,
@@ -96,13 +98,13 @@ module TSGrid {
             var $compile = $injector.get('$compile');
             var $rootScope = $injector.get('$rootScope');
 
-            this.editScope = $rootScope.$new();
-            this.editScope.vm = {
-                model: !_.isUndefined(this.value) ? this.value : this.model.get(this.column.getName()),
-                editor: this
-            };
+            this.$scope = $rootScope.$new();
+            this.scope.set('model', !_.isUndefined(this.value) ? this.value : this.model.get(this.column.getName()));
+            this.scope.set('editor', this);
 
-            return $compile($el)(this.editScope);
+            this.$scope.vm = this.scope.toObject();
+
+            return $compile($el)(this.$scope);
         }
 
         public postRender(evt) {
@@ -118,9 +120,9 @@ module TSGrid {
 
         public destroyScope() {
 
-            if (this.editScope) {
-                this.editScope.$destroy();
-                delete this.editScope;
+            if (this.$scope) {
+                this.$scope.$destroy();
+                delete this.$scope;
             }
         }
 

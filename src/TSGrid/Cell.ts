@@ -3,20 +3,12 @@
 module TSGrid {
 
     export interface ICell {
-        new (column: Column, model: TSCore.Data.Model, editor?: ICellEditor, formatter?: CellFormatter): Cell;
-    }
-
-    export interface CellOptions {
-        column?: Column
+        new (column: Column, model: TSCore.Data.Model): Cell;
     }
 
     export class Cell extends View {
 
         public tagName: string = 'td';
-
-        public formatter: CellFormatter;
-
-        public editor: ICellEditor = InputCellEditor;
 
         public editModeActive: boolean = false;
 
@@ -35,21 +27,13 @@ module TSGrid {
 
         public model: TSCore.Data.Model;
 
-        public constructor(column: Column, model: TSCore.Data.Model, editor?: ICellEditor, formatter?: ICellFormatter) {
+        public constructor(column: Column, model: TSCore.Data.Model) {
 
             super();
 
             this.column = column;
 
             this.model = model;
-
-            this.editor = TSGrid.resolveNameToClass<ICellEditor>(this.editor, "CellEditor");
-
-            if (formatter) {
-                this.formatter = new formatter();
-            } else {
-                this.formatter = new StringFormatter();
-            }
 
             this.initialize();
         }
@@ -66,7 +50,10 @@ module TSGrid {
 
         public render(): Cell {
             this.$el.empty();
-            this.$el.text(this.formatter.fromRaw(this.model.get(this.column.getName()), this.model));
+            var formatter = this.column.getFormatter();
+            var modelValue = this.model.get(this.column.getName());
+            var value = formatter ? formatter(modelValue) : modelValue;
+            this.$el.text(value);
             this.delegateEvents();
             return this;
         }
@@ -164,11 +151,14 @@ module TSGrid {
 
             if (editable) {
 
-                this.currentEditor = new this.editor(
+                var editorFactory = this.column.getEditor();
+
+                this.currentEditor = editorFactory(
                     this.column,
-                    this.model,
-                    this.formatter
+                    this.model
                 );
+
+                console.log('editor!', this.currentEditor);
 
                 this.model.events.trigger(TSGridEvents.EDIT, {
                     model: this.model,

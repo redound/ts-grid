@@ -11,11 +11,16 @@ module TSGrid {
             "keydown": "saveOrCancel"
         };
 
-        public constructor(column: Column, model: TSCore.Data.Model, formatter: CellFormatter) {
+        public constructor(column: Column, model: TSCore.Data.Model) {
 
-            super(column, model, formatter);
+            super(column, model);
 
             this.initialize();
+        }
+
+        public initialize() {
+
+            super.initialize();
         }
 
         public render() {

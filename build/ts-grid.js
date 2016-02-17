@@ -1,29 +1,7 @@
 var TSGrid;
 (function (TSGrid) {
-    var Events = (function () {
-        function Events() {
-        }
-        Events.prototype.listenTo = function (target, eventName, handler) {
-        };
-        Events.prototype.trigger = function (eventName, context) {
-        };
-        return Events;
-    })();
-    TSGrid.Events = Events;
-})(TSGrid || (TSGrid = {}));
-///<reference path="Events.ts"/>
-var __extends = (this && this.__extends) || function (d, b) {
-    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-    function __() { this.constructor = d; }
-    __.prototype = b.prototype;
-    d.prototype = new __();
-};
-var TSGrid;
-(function (TSGrid) {
-    var View = (function (_super) {
-        __extends(View, _super);
+    var View = (function () {
         function View() {
-            _super.call(this);
             this.tagName = 'div';
             this.attributes = {};
             this.cid = _.uniqueId('view');
@@ -105,7 +83,7 @@ var TSGrid;
         };
         View.DELEGATE_EVENT_SPLITTER = /^(\S+)\s*(.*)$/;
         return View;
-    })(TSGrid.Events);
+    })();
     TSGrid.View = View;
 })(TSGrid || (TSGrid = {}));
 var TSGrid;
@@ -286,6 +264,12 @@ var TSGrid;
 ///<reference path="Command.ts"/>
 ///<reference path="CommandTypes.ts"/>
 ///<reference path="GridPosition.ts"/>
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    __.prototype = b.prototype;
+    d.prototype = new __();
+};
 var TSGrid;
 (function (TSGrid) {
     var Body = (function (_super) {
@@ -475,10 +459,9 @@ var TSGrid;
 (function (TSGrid) {
     var Cell = (function (_super) {
         __extends(Cell, _super);
-        function Cell(column, model, editor, formatter) {
+        function Cell(column, model) {
             _super.call(this);
             this.tagName = 'td';
-            this.editor = TSGrid.InputCellEditor;
             this.editModeActive = false;
             this.focussed = false;
             this.viewEvents = {
@@ -489,13 +472,6 @@ var TSGrid;
             };
             this.column = column;
             this.model = model;
-            this.editor = TSGrid.resolveNameToClass(this.editor, "CellEditor");
-            if (formatter) {
-                this.formatter = new formatter();
-            }
-            else {
-                this.formatter = new TSGrid.StringFormatter();
-            }
             this.initialize();
         }
         Cell.prototype.initialize = function () {
@@ -508,7 +484,10 @@ var TSGrid;
         };
         Cell.prototype.render = function () {
             this.$el.empty();
-            this.$el.text(this.formatter.fromRaw(this.model.get(this.column.getName()), this.model));
+            var formatter = this.column.getFormatter();
+            var modelValue = this.model.get(this.column.getName());
+            var value = formatter ? formatter(modelValue) : modelValue;
+            this.$el.text(value);
             this.delegateEvents();
             return this;
         };
@@ -581,7 +560,9 @@ var TSGrid;
             if (selectAll === void 0) { selectAll = true; }
             var editable = TSGrid.callByNeed(this.column.getEditable(), this.column, this.model);
             if (editable) {
-                this.currentEditor = new this.editor(this.column, this.model, this.formatter);
+                var editorFactory = this.column.getEditor();
+                this.currentEditor = editorFactory(this.column, this.model);
+                console.log('editor!', this.currentEditor);
                 this.model.events.trigger(TSGrid.TSGridEvents.EDIT, {
                     model: this.model,
                     column: this.column,
@@ -640,18 +621,21 @@ var TSGrid;
 (function (TSGrid) {
     var CellEditor = (function (_super) {
         __extends(CellEditor, _super);
-        function CellEditor(column, model, formatter) {
+        function CellEditor(column, model) {
             _super.call(this);
+            this.scope = new TSCore.Data.Dictionary();
             this.column = column;
             this.model = model;
-            this.formatter = formatter;
         }
         CellEditor.prototype.initialize = function () {
             _super.prototype.initialize.call(this);
-            this.model.events.on(TSGrid.TSGridEvents.EDITING, this.postRender, this);
         };
         CellEditor.prototype.setValue = function (value) {
             this.value = value;
+        };
+        CellEditor.prototype.scopeValue = function (key, value) {
+            this.scope.set(key, value);
+            return this;
         };
         CellEditor.prototype.saveOrCancel = function (evt, command) {
             if (!command) {
@@ -666,7 +650,7 @@ var TSGrid;
                     evt.preventDefault();
                     evt.stopPropagation();
                 }
-                var newValue = this.editScope.vm.model;
+                var newValue = this.$scope.vm.model;
                 model.set(column.getName(), newValue);
                 var editedEvent = {
                     model: model,
@@ -694,12 +678,11 @@ var TSGrid;
             var $injector = angular.element(document).injector();
             var $compile = $injector.get('$compile');
             var $rootScope = $injector.get('$rootScope');
-            this.editScope = $rootScope.$new();
-            this.editScope.vm = {
-                model: !_.isUndefined(this.value) ? this.value : this.model.get(this.column.getName()),
-                editor: this
-            };
-            return $compile($el)(this.editScope);
+            this.$scope = $rootScope.$new();
+            this.scope.set('model', !_.isUndefined(this.value) ? this.value : this.model.get(this.column.getName()));
+            this.scope.set('editor', this);
+            this.$scope.vm = this.scope.toObject();
+            return $compile($el)(this.$scope);
         };
         CellEditor.prototype.postRender = function (evt) {
             var column = evt.params.column;
@@ -709,9 +692,9 @@ var TSGrid;
             return this;
         };
         CellEditor.prototype.destroyScope = function () {
-            if (this.editScope) {
-                this.editScope.$destroy();
-                delete this.editScope;
+            if (this.$scope) {
+                this.$scope.$destroy();
+                delete this.$scope;
             }
         };
         CellEditor.prototype.remove = function () {
@@ -723,23 +706,7 @@ var TSGrid;
     })(TSGrid.View);
     TSGrid.CellEditor = CellEditor;
 })(TSGrid || (TSGrid = {}));
-var TSGrid;
-(function (TSGrid) {
-    var CellFormatter = (function (_super) {
-        __extends(CellFormatter, _super);
-        function CellFormatter() {
-            _super.apply(this, arguments);
-        }
-        CellFormatter.prototype.fromRaw = function (rawData, model) {
-            return rawData;
-        };
-        CellFormatter.prototype.toRaw = function (formattedData, model) {
-            return formattedData;
-        };
-        return CellFormatter;
-    })(TSCore.BaseObject);
-    TSGrid.CellFormatter = CellFormatter;
-})(TSGrid || (TSGrid = {}));
+///<reference path="Cell.ts"/>
 var TSGrid;
 (function (TSGrid) {
     var Column = (function () {
@@ -785,18 +752,15 @@ var TSGrid;
         Column.prototype.getEditable = function () {
             return this._editable;
         };
-        Column.prototype.cell = function (cell) {
-            this._cell = cell;
+        Column.prototype.getHeaderType = function () {
+            return TSGrid.resolveNameToClass('header-cell');
+        };
+        Column.prototype.editor = function (editor) {
+            this._editor = editor;
             return this;
         };
-        Column.prototype.getCell = function () {
-            return this._cell;
-        };
-        Column.prototype.getCellClass = function () {
-            return TSGrid.resolveNameToClass(this._cell + '-cell');
-        };
-        Column.prototype.getHeaderCellClass = function () {
-            return TSGrid.resolveNameToClass('header-cell');
+        Column.prototype.getEditor = function () {
+            return this._editor;
         };
         Column.prototype.formatter = function (formatter) {
             this._formatter = formatter;
@@ -804,9 +768,6 @@ var TSGrid;
         };
         Column.prototype.getFormatter = function () {
             return this._formatter;
-        };
-        Column.prototype.getFormatterClass = function () {
-            return TSGrid.resolveNameToClass('string-formatter');
         };
         return Column;
     })();
@@ -833,8 +794,7 @@ var TSGrid;
             });
         };
         Row.prototype.makeCell = function (column) {
-            var cell = column.getCellClass();
-            return new cell(column, this.model);
+            return new TSGrid.Cell(column, this.model);
         };
         Row.prototype.render = function () {
             this.$el.empty();
@@ -932,8 +892,6 @@ var TSGrid;
             this._body.removeRow.apply(this._body, arguments);
             return this;
         };
-        Grid.prototype.insertColumn = function () { };
-        Grid.prototype.removeColumn = function () { };
         Grid.prototype.render = function () {
             this.$el.empty();
             if (this._header) {
@@ -941,7 +899,7 @@ var TSGrid;
             }
             this.$el.append(this._body.render().$el);
             this.delegateEvents();
-            this.trigger(TSGrid.TSGridEvents.RENDERED, this);
+            this.events.trigger(TSGrid.TSGridEvents.RENDERED);
             return this;
         };
         Grid.prototype.remove = function () {
@@ -1025,7 +983,7 @@ var TSGrid;
             _super.apply(this, arguments);
         }
         HeaderRow.prototype.makeCell = function (column) {
-            var headerCell = column.getHeaderCellClass();
+            var headerCell = column.getHeaderType();
             return new headerCell(column, this.model);
         };
         return HeaderRow;
@@ -1037,8 +995,8 @@ var TSGrid;
 (function (TSGrid) {
     var InputCellEditor = (function (_super) {
         __extends(InputCellEditor, _super);
-        function InputCellEditor(column, model, formatter) {
-            _super.call(this, column, model, formatter);
+        function InputCellEditor(column, model) {
+            _super.call(this, column, model);
             this.tagName = 'input';
             this.attributes = {
                 "type": "text"
@@ -1060,124 +1018,6 @@ var TSGrid;
         return InputCellEditor;
     })(TSGrid.CellEditor);
     TSGrid.InputCellEditor = InputCellEditor;
-})(TSGrid || (TSGrid = {}));
-///<reference path="View.ts"/>
-var TSGrid;
-(function (TSGrid) {
-    var NumberCell = (function (_super) {
-        __extends(NumberCell, _super);
-        function NumberCell(column, model, editor, formatter) {
-            _super.call(this, column, model, editor, formatter);
-            this.className = 'number-cell';
-            this.decimals = TSGrid.NumberFormatter.defaults.decimals;
-            this.decimalSeparator = TSGrid.NumberFormatter.defaults.decimalSeparator;
-            this.orderSeparator = TSGrid.NumberFormatter.defaults.orderSeparator;
-        }
-        NumberCell.prototype.initialize = function () {
-            _super.prototype.initialize.call(this);
-        };
-        return NumberCell;
-    })(TSGrid.Cell);
-    TSGrid.NumberCell = NumberCell;
-})(TSGrid || (TSGrid = {}));
-///<reference path="NumberCell.ts"/>
-var TSGrid;
-(function (TSGrid) {
-    var IntegerCell = (function (_super) {
-        __extends(IntegerCell, _super);
-        function IntegerCell() {
-            _super.apply(this, arguments);
-            this.className = 'integer-cell';
-            this.decimals = 0;
-        }
-        return IntegerCell;
-    })(TSGrid.NumberCell);
-    TSGrid.IntegerCell = IntegerCell;
-})(TSGrid || (TSGrid = {}));
-///<reference path="CellFormatter.ts"/>
-var TSGrid;
-(function (TSGrid) {
-    var NumberFormatter = (function (_super) {
-        __extends(NumberFormatter, _super);
-        function NumberFormatter(options) {
-            _super.call(this);
-            this.decimalSeparator = '.';
-            this.orderSeparator = ',';
-            _.extend(this, this.static.defaults, options || {});
-            if (this.decimals < 0 || this.decimals > 20) {
-                throw new RangeError("decimals must be between 0 and 20");
-            }
-        }
-        NumberFormatter.prototype.fromRaw = function (number, model) {
-            if (_.isNull(number) || _.isUndefined(number))
-                return '';
-            var fixedNumber = number.toFixed(~~this.decimals);
-            var parts = fixedNumber.split('.');
-            var integerPart = parts[0];
-            var decimalPart = parts[1] ? (this.decimalSeparator || '.') + parts[1] : '';
-            return integerPart.replace(this.static.HUMANIZED_NUM_RE, '$1' + this.orderSeparator) + decimalPart;
-        };
-        NumberFormatter.prototype.toRaw = function (formattedData, model) {
-            formattedData = formattedData.trim();
-            if (formattedData === '')
-                return null;
-            var rawData = '';
-            var thousands = formattedData.split(this.orderSeparator);
-            for (var i = 0; i < thousands.length; i++) {
-                rawData += thousands[i];
-            }
-            var decimalParts = rawData.split(this.decimalSeparator);
-            rawData = '';
-            for (var i = 0; i < decimalParts.length; i++) {
-                rawData = rawData + decimalParts[i] + '.';
-            }
-            if (rawData[rawData.length - 1] === '.') {
-                rawData = rawData.slice(0, rawData.length - 1);
-            }
-            var rawDataNumber = parseFloat(rawData);
-            var result = rawDataNumber.toFixed(~~this.decimals);
-            if (_.isNumber(result) && !_.isNaN(result))
-                return result;
-        };
-        NumberFormatter.HUMANIZED_NUM_RE = /(\d)(?=(?:\d{3})+$)/g;
-        NumberFormatter.defaults = {
-            decimals: 0,
-            decimalSeparator: '.',
-            orderSeparator: ','
-        };
-        return NumberFormatter;
-    })(TSGrid.CellFormatter);
-    TSGrid.NumberFormatter = NumberFormatter;
-})(TSGrid || (TSGrid = {}));
-///<reference path="View.ts"/>
-var TSGrid;
-(function (TSGrid) {
-    var StringCell = (function (_super) {
-        __extends(StringCell, _super);
-        function StringCell() {
-            _super.apply(this, arguments);
-            this.className = 'string-cell';
-        }
-        return StringCell;
-    })(TSGrid.Cell);
-    TSGrid.StringCell = StringCell;
-})(TSGrid || (TSGrid = {}));
-///<reference path="CellFormatter.ts"/>
-var TSGrid;
-(function (TSGrid) {
-    var StringFormatter = (function (_super) {
-        __extends(StringFormatter, _super);
-        function StringFormatter() {
-            _super.apply(this, arguments);
-        }
-        StringFormatter.prototype.fromRaw = function (rawValue, model) {
-            if (_.isUndefined(rawValue) || _.isNull(rawValue))
-                return '';
-            return rawValue + '';
-        };
-        return StringFormatter;
-    })(TSGrid.CellFormatter);
-    TSGrid.StringFormatter = StringFormatter;
 })(TSGrid || (TSGrid = {}));
 var TSGrid;
 (function (TSGrid) {
@@ -1219,31 +1059,16 @@ var TSGrid;
         TSGridEvents.EDITED = "tsGrid:edited";
         TSGridEvents.ERROR = "tsGrid:error";
         TSGridEvents.NEXT = "tsGrid:next";
-        TSGridEvents.CLICK = "tsGrid:click";
         TSGridEvents.NAVIGATE = "tsGrid:navigate";
     })(TSGridEvents = TSGrid.TSGridEvents || (TSGrid.TSGridEvents = {}));
-})(TSGrid || (TSGrid = {}));
-///<reference path="View.ts"/>
-var TSGrid;
-(function (TSGrid) {
-    var TextCell = (function (_super) {
-        __extends(TextCell, _super);
-        function TextCell() {
-            _super.apply(this, arguments);
-            this.className = 'text-cell';
-            this.editor = TSGrid.TextCellEditor;
-        }
-        return TextCell;
-    })(TSGrid.Cell);
-    TSGrid.TextCell = TextCell;
 })(TSGrid || (TSGrid = {}));
 ///<reference path="CellEditor.ts"/>
 var TSGrid;
 (function (TSGrid) {
     var TextCellEditor = (function (_super) {
         __extends(TextCellEditor, _super);
-        function TextCellEditor(column, model, formatter) {
-            _super.call(this, column, model, formatter);
+        function TextCellEditor(column, model) {
+            _super.call(this, column, model);
             this.tagName = 'div';
             this.viewEvents = {
                 "blur": "saveOrCancel",
@@ -1251,6 +1076,9 @@ var TSGrid;
             };
             this.initialize();
         }
+        TextCellEditor.prototype.initialize = function () {
+            _super.prototype.initialize.call(this);
+        };
         TextCellEditor.prototype.render = function () {
             this.$el.attr('text-cell-editor', "vm.model");
             this.$el.attr('cell-editor', "vm.editor");
@@ -1261,16 +1089,71 @@ var TSGrid;
     })(TSGrid.CellEditor);
     TSGrid.TextCellEditor = TextCellEditor;
 })(TSGrid || (TSGrid = {}));
+///<reference path="CellEditor.ts"/>
+var TSGrid;
+(function (TSGrid) {
+    var TypeaheadCellEditor = (function (_super) {
+        __extends(TypeaheadCellEditor, _super);
+        function TypeaheadCellEditor(column, model) {
+            _super.call(this, column, model);
+            this.tagName = 'input';
+            this.attributes = {
+                "type": "text"
+            };
+            this.viewEvents = {
+                "blur": "saveOrCancel",
+                "keydown": "saveOrCancel"
+            };
+            this.initialize();
+        }
+        TypeaheadCellEditor.prototype.initialize = function () {
+            _super.prototype.initialize.call(this);
+        };
+        TypeaheadCellEditor.prototype.saveOrCancel = function (evt) {
+            var command = TSGrid.Command.fromEvent(evt);
+            if (this.typeaheadOpened()) {
+                return;
+            }
+            _super.prototype.saveOrCancel.call(this, evt);
+        };
+        TypeaheadCellEditor.prototype.openTypehead = function () {
+            this.$scope.vm.opened = true;
+        };
+        TypeaheadCellEditor.prototype.typeaheadOpened = function () {
+            return this.$scope.vm.opened;
+        };
+        TypeaheadCellEditor.prototype.onSelect = function ($item, $model, $label, $event) {
+            console.log('onSelect', $item, $model, $label, $event);
+            this.saveOrCancel($event);
+        };
+        TypeaheadCellEditor.prototype.render = function () {
+            this.scope.set('opened', true);
+            this.scope.set('onSelect', _.bind(this.onSelect, this));
+            this.$el.attr({
+                "uib-typeahead": "option for option in vm.options | filter:$viewValue | limitTo:8",
+                "typeahead-min-length": 0,
+                "typeahead-show-hint": true,
+                "typeahead-is-open": "vm.opened",
+                "typeahead-append-to-body": false,
+                "typeahead-on-select": "vm.onSelect($item, $model, $label, $event)",
+                "ng-model": "vm.model"
+            });
+            this.$el.addClass('form-control');
+            this.compile(this.$el);
+            return this;
+        };
+        return TypeaheadCellEditor;
+    })(TSGrid.CellEditor);
+    TSGrid.TypeaheadCellEditor = TypeaheadCellEditor;
+})(TSGrid || (TSGrid = {}));
 /// <reference path="../../ts-core/build/ts-core.d.ts" />
 /// <reference path="../typings/tsd.d.ts" />
 /// <reference path="TSGrid/Body.ts" />
 /// <reference path="TSGrid/Cell.ts" />
 /// <reference path="TSGrid/CellEditor.ts" />
-/// <reference path="TSGrid/CellFormatter.ts" />
 /// <reference path="TSGrid/Column.ts" />
 /// <reference path="TSGrid/Command.ts" />
 /// <reference path="TSGrid/CommandTypes.ts" />
-/// <reference path="TSGrid/Events.ts" />
 /// <reference path="TSGrid/FocusableRow.ts" />
 /// <reference path="TSGrid/Grid.ts" />
 /// <reference path="TSGrid/GridPosition.ts" />
@@ -1278,14 +1161,9 @@ var TSGrid;
 /// <reference path="TSGrid/HeaderCell.ts" />
 /// <reference path="TSGrid/HeaderRow.ts" />
 /// <reference path="TSGrid/InputCellEditor.ts" />
-/// <reference path="TSGrid/IntegerCell.ts" />
-/// <reference path="TSGrid/NumberCell.ts" />
-/// <reference path="TSGrid/NumberFormatter.ts" />
 /// <reference path="TSGrid/Row.ts" />
-/// <reference path="TSGrid/StringCell.ts" />
-/// <reference path="TSGrid/StringFormatter.ts" />
 /// <reference path="TSGrid/TSGrid.ts" />
-/// <reference path="TSGrid/TextCell.ts" />
 /// <reference path="TSGrid/TextCellEditor.ts" />
+/// <reference path="TSGrid/TypeaheadCellEditor.ts" />
 /// <reference path="TSGrid/View.ts" />
 //# sourceMappingURL=ts-grid.js.map

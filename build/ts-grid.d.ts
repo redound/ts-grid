@@ -1,12 +1,6 @@
 /// <reference path="../../ts-core/build/ts-core.d.ts" />
 declare module TSGrid {
-    class Events {
-        listenTo(target: any, eventName: string, handler: any): void;
-        trigger(eventName: string, context: any): void;
-    }
-}
-declare module TSGrid {
-    class View extends Events {
+    class View {
         static DELEGATE_EVENT_SPLITTER: RegExp;
         tagName: string;
         className: string;
@@ -128,15 +122,10 @@ declare module TSGrid {
 }
 declare module TSGrid {
     interface ICell {
-        new (column: Column, model: TSCore.Data.Model, editor?: ICellEditor, formatter?: CellFormatter): Cell;
-    }
-    interface CellOptions {
-        column?: Column;
+        new (column: Column, model: TSCore.Data.Model): Cell;
     }
     class Cell extends View {
         tagName: string;
-        formatter: CellFormatter;
-        editor: ICellEditor;
         editModeActive: boolean;
         focussed: boolean;
         currentEditor: CellEditor;
@@ -148,7 +137,7 @@ declare module TSGrid {
         };
         column: Column;
         model: TSCore.Data.Model;
-        constructor(column: Column, model: TSCore.Data.Model, editor?: ICellEditor, formatter?: ICellFormatter);
+        constructor(column: Column, model: TSCore.Data.Model);
         initialize(): void;
         render(): Cell;
         processKeypress(evt: any): void;
@@ -166,31 +155,23 @@ declare module TSGrid {
 }
 declare module TSGrid {
     interface ICellEditor {
-        new (column: Column, model: TSCore.Data.Model, formatter: CellFormatter): CellEditor;
+        new (column: Column, model: TSCore.Data.Model): CellEditor;
     }
     class CellEditor extends View {
         column: Column;
         model: TSCore.Data.Model;
-        formatter: CellFormatter;
-        editScope: any;
+        scope: TSCore.Data.Dictionary<string, any>;
+        $scope: any;
         value: any;
-        constructor(column: Column, model: TSCore.Data.Model, formatter: CellFormatter);
+        constructor(column: Column, model: TSCore.Data.Model);
         initialize(): void;
         setValue(value: any): void;
+        scopeValue(key: string, value: any): CellEditor;
         saveOrCancel(evt: any, command?: Command): void;
         compile($el: JQuery): any;
         postRender(evt: any): CellEditor;
         destroyScope(): void;
         remove(): CellEditor;
-    }
-}
-declare module TSGrid {
-    interface ICellFormatter {
-        new (): CellFormatter;
-    }
-    class CellFormatter extends TSCore.BaseObject {
-        fromRaw(rawData: any, model: any): any;
-        toRaw(formattedData: any, model: any): any;
     }
 }
 declare module TSGrid {
@@ -201,8 +182,8 @@ declare module TSGrid {
         protected _label: string;
         protected _renderable: boolean;
         protected _editable: boolean;
-        protected _cell: string;
-        protected _formatter: string;
+        protected _editor: any;
+        protected _formatter: any;
         constructor();
         getId(): number;
         setGrid(grid: Grid): void;
@@ -215,13 +196,11 @@ declare module TSGrid {
         getRenderable(): boolean;
         editable(editable: boolean): Column;
         getEditable(): boolean;
-        cell(cell: string): Column;
-        getCell(): string;
-        getCellClass(): ICell;
-        getHeaderCellClass(): ICell;
-        formatter(formatter: string): Column;
-        getFormatter(): string;
-        getFormatterClass(): {};
+        getHeaderType(): ICell;
+        editor(editor: any): Column;
+        getEditor(): any;
+        formatter(formatter: any): Column;
+        getFormatter(): any;
     }
 }
 declare module TSGrid {
@@ -267,8 +246,6 @@ declare module TSGrid {
         getColumns(): TSCore.Data.List<Column>;
         insertRow(): Grid;
         removeRow(): Grid;
-        insertColumn(): void;
-        removeColumn(): void;
         render(): Grid;
         remove(): View;
     }
@@ -309,58 +286,9 @@ declare module TSGrid {
         tagName: string;
         attributes: any;
         viewEvents: any;
-        constructor(column: Column, model: TSCore.Data.Model, formatter: CellFormatter);
+        constructor(column: Column, model: TSCore.Data.Model);
         initialize(): void;
         render(): InputCellEditor;
-    }
-}
-declare module TSGrid {
-    class NumberCell extends Cell {
-        className: string;
-        decimals: number;
-        decimalSeparator: string;
-        orderSeparator: string;
-        formatter: CellFormatter;
-        constructor(column: Column, model: TSCore.Data.Model, editor?: ICellEditor, formatter?: ICellFormatter);
-        initialize(): void;
-    }
-}
-declare module TSGrid {
-    class IntegerCell extends NumberCell {
-        className: string;
-        decimals: number;
-    }
-}
-declare module TSGrid {
-    interface NumberFormatterOptions {
-        decimals?: number;
-        decimalSeparator?: string;
-        orderSeparator?: string;
-    }
-    class NumberFormatter extends CellFormatter {
-        static HUMANIZED_NUM_RE: RegExp;
-        static defaults: {
-            decimals: number;
-            decimalSeparator: string;
-            orderSeparator: string;
-        };
-        decimals: number;
-        decimalSeparator: string;
-        orderSeparator: string;
-        constructor(options: NumberFormatterOptions);
-        fromRaw(number: number, model: TSCore.Data.Model): string;
-        toRaw(formattedData: any, model: any): string;
-    }
-}
-declare module TSGrid {
-    class StringCell extends Cell {
-        className: string;
-        formatter: CellFormatter;
-    }
-}
-declare module TSGrid {
-    class StringFormatter extends CellFormatter {
-        fromRaw(rawValue: string, model: TSCore.Data.Model): string;
     }
 }
 declare module TSGrid {
@@ -375,22 +303,29 @@ declare module TSGrid {
         const EDITED: string;
         const ERROR: string;
         const NEXT: string;
-        const CLICK: string;
         const NAVIGATE: string;
-    }
-}
-declare module TSGrid {
-    class TextCell extends Cell {
-        className: string;
-        editor: ICellEditor;
-        formatter: CellFormatter;
     }
 }
 declare module TSGrid {
     class TextCellEditor extends CellEditor {
         tagName: string;
         viewEvents: any;
-        constructor(column: Column, model: TSCore.Data.Model, formatter: CellFormatter);
+        constructor(column: Column, model: TSCore.Data.Model);
+        initialize(): void;
         render(): TextCellEditor;
+    }
+}
+declare module TSGrid {
+    class TypeaheadCellEditor extends CellEditor {
+        tagName: string;
+        attributes: any;
+        viewEvents: any;
+        constructor(column: Column, model: TSCore.Data.Model);
+        initialize(): void;
+        saveOrCancel(evt: any): void;
+        openTypehead(): void;
+        typeaheadOpened(): any;
+        onSelect($item: any, $model: any, $label: any, $event: any): void;
+        render(): TypeaheadCellEditor;
     }
 }

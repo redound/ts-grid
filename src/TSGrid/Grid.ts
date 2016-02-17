@@ -79,9 +79,6 @@ module TSGrid {
             return this;
         }
 
-        public insertColumn() {}
-        public removeColumn() {}
-
         /**
          * Renders the grid's header, then the body. Triggers a
          * `TSGridEvents.RENDERED` event along with a reference to the
@@ -100,7 +97,7 @@ module TSGrid {
 
             this.delegateEvents();
 
-            this.trigger(TSGridEvents.RENDERED, this);
+            this.events.trigger(TSGridEvents.RENDERED);
 
             return this;
         }
