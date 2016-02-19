@@ -1,11 +1,11 @@
 module TSGrid {
 
-    export class HeaderCell extends View {
+    export class HeaderCell extends TSCore.App.UI.View {
 
         public tagName: string = 'th';
 
         public viewEvents: any = {
-            "click a": "onClick"
+            "click a": "click"
         };
 
         public row: HeaderRow;
@@ -24,6 +24,11 @@ module TSGrid {
         public initialize() {
 
             super.initialize();
+
+            // TODO: Implement.
+        }
+
+        public click() {
 
             // TODO: Implement.
         }

@@ -1,91 +1,158 @@
-///<reference path="View.ts"/>
-
 module TSGrid {
 
     export interface ICellEditor {
         new (column: Column, model: TSCore.Data.Model): CellEditor;
     }
 
-    export class CellEditor extends View {
+    export enum CellEditorAction {
+        ESC,
+        BLUR,
+        ENTER
+    }
 
-        public column: Column;
+    export class CellEditor extends TSCore.App.UI.View {
 
-        public model: TSCore.Data.Model;
+        protected column: Column;
 
-        public editorName: string;
+        protected model: TSCore.Data.Model;
 
-        public options: TSCore.Data.Dictionary<string, any> = new TSCore.Data.Dictionary<string, any>();
+        protected editorName: string;
 
-        public $scope;
-
-        public value: any;
-
-        protected _autoFocus: boolean = false;
-
-        protected _selectAll: boolean = false;
+        protected initialModelValue: any;
 
         public constructor(column: Column, model: TSCore.Data.Model, editorName: string) {
             super();
-            this.column = column;
-            this.model = model;
-            this.editorName = editorName;
+            this.setColumn(column);
+            this.setModel(model);
+            this.setEditorName(editorName);
             this.initialize();
         }
 
-        public initialize() {
-            super.initialize();
+        /**
+         * Set the column.
+         * @param column
+         * @returns {TSGrid.CellEditor}
+         * @chainable
+         */
+        public setColumn(column: Column): CellEditor {
+            this.column = column;
+            return this;
         }
 
+        /**
+         * Get the column.
+         * @returns {Column}
+         */
+        public getColumn(): Column {
+            return this.column;
+        }
+
+        /**
+         * Set the model.
+         * @param model
+         * @returns {TSGrid.CellEditor}
+         * @chainable
+         */
+        public setModel(model: TSCore.Data.Model): CellEditor {
+            this.model = model;
+            return this;
+        }
+
+        /**
+         * Get the model.
+         * @returns {TSCore.Data.Model}
+         */
+        public getModel(): TSCore.Data.Model {
+            return this.model;
+        }
+
+        /**
+         * Set the editorName.
+         * @param editorName
+         * @returns {TSGrid.CellEditor}
+         * @chainable
+         */
+        public setEditorName(editorName: string): CellEditor {
+            this.editorName = editorName;
+            return this;
+        }
+
+        /**
+         * Get the editorName.
+         * @returns {string}
+         */
         public getEditorName(): string {
             return this.editorName;
         }
 
-        public autoFocus(): CellEditor {
-            this._autoFocus = true;
+        /**
+         * Set the initialModelValue.
+         * @param value
+         * @chainable
+         */
+        public setInitialModelValue(value: any): CellEditor {
+            this.initialModelValue = value;
             return this;
         }
 
-        public shouldAutoFocus(): boolean {
-            return this._autoFocus;
+        /**
+         * Get the initialModelValue.
+         * @returns {any}
+         */
+        public getInitialModelValue(): any {
+            return this.initialModelValue;
         }
 
-        public selectAll(): CellEditor {
-            this._selectAll = true;
+        /**
+         * Set the modelValue.
+         * @param value
+         * @returns {TSGrid.CellEditor}
+         * @chainable
+         */
+        public setModelValue(value: any) {
+            this.model.set(this.column.getName(), value);
             return this;
         }
 
-        public shouldSelectAll(): boolean {
-            return this._selectAll;
+        /**
+         * Get the modelValue.
+         * @returns {*|any}
+         */
+        public getModelValue(): any {
+            return this.model.get(this.column.getName());
         }
 
-        public setValue(value: any) {
-            this.value = value;
-        }
-
-        public option(key: string, value: any): CellEditor {
-            this.options.set(key, value);
-            return this;
-        }
-
-        public save(commandType: CommandTypes, value: any) {
+        /**
+         * Set's the updated modelValue, than triggers
+         * TSGridEvents.EDITED event on the grid and model.
+         *
+         * @param action Action on which the save action is based.
+         * @param value The updated modelValue
+         */
+        public save(action: CellEditorAction, value: any) {
 
             var model = this.model;
             var column = this.column;
             var grid = column.getGrid();
 
-            model.set(column.getName(), value);
+            this.setModelValue(value);
 
             var editedEvent = {
                 model: model,
                 column: column,
-                command: Command.fromType(commandType),
+                command: Command.fromAction(action),
             };
 
             grid.events.trigger(TSGridEvents.EDITED, editedEvent);
             model.events.trigger(TSGridEvents.EDITED, editedEvent);
         }
 
-        public cancel(commandType: CommandTypes) {
+        /**
+         * Cancel editing.
+         *
+         * @param action Action on which the cancel action is based.
+         */
+        public cancel(action: CellEditorAction) {
 
             var model = this.model;
             var column = this.column;
@@ -94,53 +161,11 @@ module TSGrid {
             var editedEvent = {
                 model: model,
                 column: column,
-                command: Command.fromType(commandType)
+                command: Command.fromAction(action)
             };
 
             grid.events.trigger(TSGridEvents.EDITED, editedEvent);
             model.events.trigger(TSGridEvents.EDITED, editedEvent);
-        }
-
-        public render() {
-
-            this.$el.attr(this.editorName, '');
-            this.$el.attr('cell-editor-options', 'options');
-            this.compile(this.$el);
-
-            return this;
-        }
-
-        public compile($el: JQuery) {
-
-            this.destroyScope();
-
-            var $injector = angular.element(document).injector();
-
-            var $compile = $injector.get('$compile');
-            var $rootScope = $injector.get('$rootScope');
-
-            this.$scope = $rootScope.$new();
-            this.options.set('model', !_.isUndefined(this.value) ? this.value : this.model.get(this.column.getName()));
-            this.options.set('editor', this);
-
-            this.$scope.options = this.options.toObject();
-
-            return $compile($el)(this.$scope);
-        }
-
-        public destroyScope() {
-
-            if (this.$scope) {
-                this.$scope.$destroy();
-                delete this.$scope;
-            }
-        }
-
-        public remove() {
-
-            this.destroyScope();
-            super.remove();
-            return this;
         }
     }
 }

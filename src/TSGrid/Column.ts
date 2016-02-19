@@ -1,6 +1,5 @@
 ///<reference path="Cell.ts"/>
 
-
 module TSGrid {
 
     export class Column {

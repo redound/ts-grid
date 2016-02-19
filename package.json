@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "ts-core": "git://github.com/ts-core/ts-core#development",
+    "ts-core-app": "git://github.com/ts-core/ts-core-app#dev-0.6.0",
     "tsd": "^0.6.3",
     "underscore": "^1.8.3"
   },
@@ -29,7 +30,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ts-core/ts-grid.git"
+    "url": "git+https://github.com/redound/ts-grid.git"
   },
   "keywords": [
     "typescript",
@@ -52,12 +53,11 @@
     "point"
   ],
   "contributors": [
-    "Bart Blok <bart@wittig.nl>",
     "Olivier Andriessen <olivierandriessen@gmail.com>"
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/ts-core/ts-grid/issues"
+    "url": "https://github.com/redound/ts-grid/issues"
   },
-  "homepage": "https://github.com/ts-core/ts-grid#readme"
+  "homepage": "https://github.com/redound/ts-grid#readme"
 }

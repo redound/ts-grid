@@ -1,12 +1,10 @@
-///<reference path="View.ts"/>
-
 module TSGrid {
 
     export interface IRow {
         new (columns: TSCore.Data.List<Column>, model: TSCore.Data.Model): Row;
     }
 
-    export class Row extends View {
+    export class Row extends TSCore.App.UI.View {
 
         public tagName: string = 'tr';
 

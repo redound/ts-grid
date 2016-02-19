@@ -1,30 +1,38 @@
-///<reference path="View.ts"/>
-
 module TSGrid {
 
     export interface ICell {
         new (column: Column, model: TSCore.Data.Model): Cell;
     }
 
-    export class Cell extends View {
+    export class Cell extends TSCore.App.UI.View {
 
         public tagName: string = 'td';
 
         public editModeActive: boolean = false;
 
-        public focussed: boolean = false;
-
+        /**
+         * Upon entering edit mode this property
+         * contains an instance of CellEditor, when
+         * exiting edit mode this instance get's removed again.
+         */
         public currentEditor: CellEditor;
 
         public viewEvents = {
             "click": "click",
             "blur": "blur",
-            "keypress": "processKeypress",
-            "keydown": "processKeydown"
+            "keypress": "keypress",
+            "keydown": "keydown"
         };
 
+        /**
+         * Column cell belongs to.
+         */
         public column: Column;
 
+        /**
+         * Model of the Row instance this cell
+         * belongs to.
+         */
         public model: TSCore.Data.Model;
 
         public constructor(column: Column, model: TSCore.Data.Model) {
@@ -38,6 +46,12 @@ module TSGrid {
             this.initialize();
         }
 
+        /**
+         * Initializer.
+         *
+         * If this cells column is marked as editable or renderable
+         * this cell with get a corresponding class set for that.
+         */
         public initialize() {
 
             super.initialize();
@@ -48,6 +62,22 @@ module TSGrid {
             if (TSGrid.callByNeed(this.column.getRenderable(), this.column, this.model)) this.$el.addClass("renderable");
         }
 
+        /**
+         * This function is responsible for
+         * rendering the element in display mode.
+         *
+         * By default the Model's value for this cell
+         * is set as text.
+         *
+         * When a formatter is given
+         * the value will first be formatted before being
+         * set as text.
+         *
+         * Also, the width from the column definition
+         * will be applied on this cell.
+         * @returns {TSGrid.Cell}
+         * @chainable
+         */
         public render(): Cell {
             this.$el.empty();
             var formatter = this.column.getFormatter();
@@ -59,18 +89,34 @@ module TSGrid {
             return this;
         }
 
-        public processKeypress(evt) {
+        /**
+         * When valid cell input is entered,
+         * we enter edit mode with that character
+         * as the editors initial value.
+         * @param evt
+         */
+        protected keypress(evt) {
 
             var command = Command.fromEvent(evt);
 
             if (command.input()) {
 
                 var char = String.fromCharCode(evt.keyCode);
-                this.enterEditMode(false, char);
+                this.enterEditMode(char);
             }
         }
 
-        public processKeydown(evt) {
+        /**
+         * When ENTER gets hit we enter edit mode.
+         *
+         * When BACKSPACE gets hit we clear the Model's value.
+         *
+         * When the user uses the NAVIGATION keys,
+         * we let the grid know we want to navigate in the grid.
+         *
+         * @param evt
+         */
+        protected keydown(evt) {
 
             var command = Command.fromEvent(evt);
 
@@ -96,40 +142,66 @@ module TSGrid {
             }
         }
 
-        public click() {
+        /**
+         * When CLICKED while cell isn't focused activate cell.
+         *
+         * When CLICKED while cell IS focused enter edit mode.
+         */
+        protected click() {
 
-            if (this.focussed) {
+            if (this.$el.is(':focus')) {
                 this.enterEditMode();
             } else {
-                this.focus();
+                this.activate();
             }
         }
 
-        public focus() {
-
-            this.focussed = true;
-            this.$el.attr('tabindex', 0);
-            this.$el.focus();
-            this.$el.addClass('active');
-        }
-
-        public blur() {
+        /**
+         * On BLUR remove corresponding classes, attributes and
+         * exit edit mode if needed.
+         */
+        protected blur() {
 
             if (this.editModeActive) {
                 this.exitEditMode();
             }
 
-            this.focussed = false;
             this.$el.removeClass('active');
             this.$el.removeAttr('tabindex');
         }
 
+        /**
+         * Activate means focusing the cell and
+         * adding the corresponding classes to the cell
+         */
+        public activate() {
+
+            this.$el.attr('tabindex', 0);
+            this.$el.focus();
+            this.$el.addClass('active');
+        }
+
+        /**
+         * Alias for blur
+         */
+        public deactivate() {
+            this.blur();
+        }
+
+        /**
+         * Clear Model's value and rerender cell with that value.
+         */
         public clear() {
 
             this.model.set(this.column.getName(), null);
             this.render();
         }
 
+        /**
+         * TODO: try to simplify this method
+         * This method can be called as a callback for TSGridEvents.EDITED event.
+         * @param evt
+         */
         public doneEditing(evt) {
 
             var column = evt.params.column;
@@ -141,11 +213,25 @@ module TSGrid {
                     this.exitEditMode();
                 }
 
-                this.focus();
+                this.activate();
             }
         }
 
-        public enterEditMode(selectAll = true, initialValue?: any) {
+        /**
+         * If this column is editable, a new CellEditor instance is instantiated with
+         * its required paramters. An `editor` together with a `editor-name` CSS class
+         * is added to the cell upon entering edit mode.
+         *
+         *
+         * This method triggers a TSGridEvents.EDIT event on the model when the cell
+         * is entering edit mode and an editor instance has been constructed,
+         * but before it is rendered and inserted into the DOM. The model, column, cell
+         * and the constructed cell editor instance are sent as event parameters in the event.
+         *
+         * @param withModelValue Optional. A value can be passed to be used as the initial
+         * value for the editor when it gets activated.
+         */
+        public enterEditMode(withModelValue?: any) {
 
             var editable = TSGrid.callByNeed(this.column.getEditable(), this.column, this.model);
 
@@ -168,14 +254,8 @@ module TSGrid {
                 // Need to redundantly undelegate events for Firefox
                 this.undelegateEvents();
 
-                if (initialValue) {
-                    this.currentEditor.setValue(initialValue);
-                }
-
-                this.currentEditor.autoFocus();
-
-                if (selectAll) {
-                    this.currentEditor.selectAll();
+                if (withModelValue) {
+                    this.currentEditor.setInitialModelValue(withModelValue);
                 }
 
                 this.currentEditor.render();
@@ -231,6 +311,7 @@ module TSGrid {
          * @chainable
          */
         public remove(): Cell {
+
             if (this.currentEditor) {
                 this.currentEditor.remove.apply(this.currentEditor, arguments);
                 delete this.currentEditor;

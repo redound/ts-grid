@@ -1,8 +1,6 @@
-///<reference path="View.ts"/>
-
 module TSGrid {
 
-    export class Grid extends View {
+    export class Grid extends TSCore.App.UI.View {
 
         public tagName: string = 'div';
 

@@ -1,6 +1,5 @@
 ///<reference path="Row.ts"/>
 
-
 module TSGrid {
 
     export class HeaderRow extends Row {

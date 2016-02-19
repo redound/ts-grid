@@ -44,63 +44,52 @@ module TSGrid {
 
             this.event = evt;
 
-            if (evt) {
-                _.extend(this, {
-                    type: evt.type,
-                    altKey: !!evt.altKey,
-                    "char": evt["char"],
-                    charCode: evt.charCode,
-                    ctrlKey: !!evt.ctrlKey,
-                    key: evt.key,
-                    keyCode: evt.keyCode,
-                    locale: evt.locale,
-                    location: evt.location,
-                    metaKey: !!evt.metaKey,
-                    repeat: !!evt.repeat,
-                    shiftKey: !!evt.shiftKey,
-                    which: evt.which
-                });
-            }
+            this.type = evt.type;
+            this.ctrlKey = !!evt.ctrlKey;
+            this.keyCode = evt.keyCode;
+            this.shiftKey = !!evt.shiftKey;
 
-            if (this.keyCode === 38) {
+            switch(true) {
 
-                this.commandType = CommandTypes.ARROW_UP;
-            }
-            else if (this.keyCode === 40) {
+                case (this.keyCode === 38):
+                    this.commandType = CommandTypes.ARROW_UP;
+                    break;
 
-                this.commandType = CommandTypes.ARROW_DOWN;
-            }
-            else if (this.shiftKey && this.keyCode === 9) {
+                case (this.keyCode === 40):
+                    this.commandType = CommandTypes.ARROW_DOWN;
+                    break;
 
-                this.commandType = CommandTypes.SHIFT_TAB;
-            }
-            else if (this.keyCode === 37) {
+                case (this.shiftKey && this.keyCode === 9):
+                    this.commandType = CommandTypes.SHIFT_TAB;
+                    break;
 
-                this.commandType = CommandTypes.ARROW_LEFT;
-            }
-            else if (!this.shiftKey && this.keyCode === 9) {
+                case (this.keyCode === 37):
+                    this.commandType = CommandTypes.ARROW_LEFT;
+                    break;
 
-                this.commandType = CommandTypes.TAB;
-            }
-            else if (this.keyCode === 39) {
+                case (!this.shiftKey && this.keyCode === 9):
+                    this.commandType = CommandTypes.TAB;
+                    break;
 
-                this.commandType = CommandTypes.ARROW_RIGHT;
-            }
-            else if (!this.shiftKey && this.keyCode === 13) {
+                case (this.keyCode === 39):
+                    this.commandType = CommandTypes.ARROW_RIGHT;
+                    break;
 
-                this.commandType = CommandTypes.ENTER;
-            }
-            else if (this.keyCode === 8) {
+                case (!this.shiftKey && this.keyCode === 13):
+                    this.commandType = CommandTypes.ENTER;
+                    break;
 
-                this.commandType = CommandTypes.BACKSPACE;
-            }
-            else if (this.keyCode === 27) {
+                case (this.keyCode === 8):
+                    this.commandType = CommandTypes.BACKSPACE;
+                    break;
 
-                this.commandType = CommandTypes.CANCEL;
-            }
-            else {
+                case (this.keyCode === 27):
+                    this.commandType = CommandTypes.CANCEL;
+                    break;
 
-                this.commandType = CommandTypes.NONE;
+                default:
+                    this.commandType = CommandTypes.NONE;
+                    break;
             }
         }
 
@@ -217,6 +206,24 @@ module TSGrid {
         public static fromType(type: CommandTypes) {
             var command = new Command();
             command.setType(type);
+            return command;
+        }
+
+        public static fromAction(action: CellEditorAction) {
+            var command = new Command();
+            switch(action) {
+                case CellEditorAction.BLUR:
+                    command.setType(CommandTypes.CANCEL);
+                    break;
+                case CellEditorAction.ESC:
+                    command.setType(CommandTypes.CANCEL);
+                    break;
+                case CellEditorAction.ENTER:
+                    command.setType(CommandTypes.ENTER);
+                    break;
+                default:
+                    break;
+            }
             return command;
         }
     }

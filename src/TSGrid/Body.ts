@@ -1,19 +1,20 @@
-///<reference path="View.ts"/>
 ///<reference path="Command.ts"/>
 ///<reference path="CommandTypes.ts"/>
-///<reference path="GridPosition.ts"/>
 
 module TSGrid {
 
-    export class Body extends View {
+    export class Body extends TSCore.App.UI.View {
 
         public tagName:string = 'div';
 
         public className:string = 'ts-grid-body';
 
+        /**
+         * A list with Column definitions
+         */
         public columns:TSCore.Data.List<Column>;
 
-        public row:IRow = Row;
+        public rowType:IRow = Row;
 
         public rows:TSCore.Data.List<Row>;
 
@@ -21,7 +22,7 @@ module TSGrid {
 
         public _grid:Grid;
 
-        public constructor(columns:TSCore.Data.List<Column>, items:TSCore.Data.List<TSCore.Data.Model>, rowClass?:IRow) {
+        public constructor(columns:TSCore.Data.List<Column>, items:TSCore.Data.List<TSCore.Data.Model>, rowType?:IRow) {
 
             super();
 
@@ -29,20 +30,21 @@ module TSGrid {
 
             this.items = items;
 
-            this.row = rowClass;
+            this.rowType = rowType;
 
             this.initialize();
         }
 
+        /**
+         * Initializer.
+         */
         public initialize() {
 
             super.initialize();
 
-            var grid = this.getGrid();
-
             this.rows = this.items.map<Row>(model => {
 
-                return new this.row(
+                return new this.rowType(
                     this.columns,
                     model
                 );
@@ -53,16 +55,31 @@ module TSGrid {
             this.items.events.on(TSCore.Data.List.Events.REMOVE, evt => this.removeRows(evt));
         }
 
+        /**
+         * This will set the Grid instance and attaches
+         * the right event(s) on it
+         * @param grid
+         */
         public setGrid(grid:Grid) {
             this._grid = grid;
             grid.events.on(TSGrid.TSGridEvents.EDITED, this.moveToNextCell, this);
             grid.events.on(TSGrid.TSGridEvents.NAVIGATE, this.moveToNextCell, this);
         }
 
+        /**
+         * Get the Body's Grid instance.
+         * @returns {Grid}
+         */
         public getGrid() {
             return this._grid;
         }
 
+        /**
+         * This method can be called either directly or with a certain index.
+         * @param model
+         * @param index
+         * @param items
+         */
         public insertRow(model:TSCore.Data.Model, index?:number, items?:TSCore.Data.List<TSCore.Data.Model>) {
 
             // insertRow() is called directly
@@ -71,7 +88,7 @@ module TSGrid {
                 return;
             }
 
-            var row = new this.row(
+            var row = new this.rowType(
                 this.columns,
                 model
             );
@@ -92,6 +109,10 @@ module TSGrid {
             }
         }
 
+        /**
+         * This method can be called as a callback to a TSCore.Data.Collection#add event.
+         * @param evt
+         */
         public insertRows(evt) {
 
             var operations:TSCore.Data.IListOperation[] = evt.params.operations;
@@ -101,6 +122,10 @@ module TSGrid {
             });
         }
 
+        /**
+         * This method can be called as a callback to a TSCore.Data.Collection#remove event.
+         * @param evt
+         */
         public removeRows(evt) {
 
             var operations:TSCore.Data.IListOperation[] = evt.params.operations;
@@ -118,6 +143,12 @@ module TSGrid {
             });
         }
 
+        /**
+         * Remove row by model
+         * @param model Model instance to remove
+         * @returns {TSGrid.Body}
+         * @chainable
+         */
         public removeRow(model:TSCore.Data.Model) {
 
             this.items.remove(model);
@@ -125,13 +156,10 @@ module TSGrid {
             return this;
         }
 
-        public refresh() {
-
-        }
-
         /**
          * Renders all the rows inside this body.
          * @returns {TSGrid.Body}
+         * @chainable
          */
         public render():Body {
 
@@ -167,8 +195,15 @@ module TSGrid {
             return super.remove();
         }
 
+        /**
+         * Move to next cell based on event
+         * @param evt
+         * @returns {TSGrid.Body}
+         * @chainable
+         */
         public moveToNextCell(evt) {
 
+            var grid = this.getGrid();
             var model = evt.params.model;
             var column = evt.params.column;
             var command: Command = evt.params.command;
@@ -181,16 +216,13 @@ module TSGrid {
 
             var currentCell = this.rows.get(i).cells.get(j);
 
-            //var currentRow = this.rows.get(i);
-            //currentRow.render();
-
             if (command.navigate() || command.blurred()) {
                 var l = this.columns.length;
                 var maxOffset = l * this.items.length;
 
                 if (command.blurred()) {
 
-                    currentCell.blur();
+                    currentCell.deactivate();
                 }
                 else if (command.moveUp() || command.moveDown()) {
                     m = i + (command.moveUp() ? -1 : 1);
@@ -206,23 +238,23 @@ module TSGrid {
                         cell = row.cells.get(j);
                         if (TSGrid.callByNeed(cell.column.getEditable(), cell.column, model)) {
                             var editMode = currentCell.editModeActive;
-                            currentCell.blur();
-                            cell.focus();
+                            currentCell.deactivate();
+                            cell.activate();
                             if (editMode) {
                                 cell.enterEditMode();
                             }
-                            model.events.trigger(TSGridEvents.NEXT, {
-                                m: m,
-                                j: j,
-                                b: false
+                            grid.events.trigger(TSGridEvents.NEXT, {
+                                row: m,
+                                column: j,
+                                outside: false
                             });
                         }
                     }
                     else {
-                        model.events.trigger(TSGridEvents.NEXT, {
-                            m: m,
-                            j: j,
-                            b: true
+                        grid.events.trigger(TSGridEvents.NEXT, {
+                            row: m,
+                            column: j,
+                            outside: true
                         });
                     }
                 }
@@ -246,25 +278,25 @@ module TSGrid {
 
                         if (renderable && editable) {
                             var editMode = currentCell.editModeActive;
-                            currentCell.blur();
-                            cell.focus();
+                            currentCell.deactivate();
+                            cell.activate();
                             if (editMode) {
                                 cell.enterEditMode();
                             }
-                            model.events.trigger(TSGridEvents.NEXT, {
-                                m: m,
-                                j: n,
-                                b: false
+                            grid.events.trigger(TSGridEvents.NEXT, {
+                                row: m,
+                                column: n,
+                                outside: false
                             });
                             break;
                         }
                     }
 
                     if (offset == maxOffset) {
-                        model.events.trigger(TSGridEvents.NEXT, {
-                            m: ~~(offset / l),
-                            j: offset - m * l,
-                            b: true
+                        grid.events.trigger(TSGridEvents.NEXT, {
+                            row: ~~(offset / l),
+                            column: offset - m * l,
+                            outside: true
                         });
                     }
                 }

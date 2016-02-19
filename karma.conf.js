@@ -16,6 +16,7 @@ module.exports = function(config) {
     // list of files / patterns to load in the browser
     files: [
       'node_modules/ts-core/build/ts-core.js',
+      'node_modules/ts-core-app/build/ts-core-app.js',
       'node_modules/underscore/underscore.js',
       'build/ts-grid.js',
       'test/ts-grid.spec.js'

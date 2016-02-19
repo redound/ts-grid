@@ -1,12 +1,11 @@
 {
   "name": "ts-grid",
   "version": "0.1.0",
-  "homepage": "https://github.com/ts-core/ts-grid",
+  "homepage": "https://github.com/redound/ts-grid",
   "authors": [
-    "Olivier Andriessen <olivierandriessen@gmail.com>",
-    "Bart Blok <bart@wittig.nl>"
+    "Olivier Andriessen <olivierandriessen@gmail.com>"
   ],
-  "description": "TypeScript Grid Library",
+  "description": "TypeScript Data Grid Library",
   "main": [
     "build/ts-grid.js",
     "build/ts-grid.min.js",

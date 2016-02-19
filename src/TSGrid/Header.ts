@@ -1,9 +1,6 @@
-///<reference path="View.ts"/>
-
-
 module TSGrid {
 
-    export class Header extends View {
+    export class Header extends TSCore.App.UI.View {
 
         public tagName: string = 'div';
 
@@ -32,11 +29,11 @@ module TSGrid {
                 this.columns,
                 null
             );
-
         }
 
-        public setGrid(grid: Grid) {
+        public setGrid(grid: Grid): Header {
             this._grid = grid;
+            return this;
         }
 
         public getGrid(): Grid {
@@ -59,10 +56,6 @@ module TSGrid {
 
             this.delegateEvents();
             return this;
-        }
-
-        public reset() {
-
         }
     }
 }
