@@ -12,6 +12,8 @@ module TSGrid {
 
         protected _columns: TSCore.Data.List<Column>;
 
+        protected _width: number;
+
         public events: TSCore.Events.EventEmitter = new TSCore.Events.EventEmitter();
 
         public constructor(header: Header, body: Body, columns: TSCore.Data.List<Column>) {
@@ -49,14 +51,26 @@ module TSGrid {
         }
 
         public setColumns(columns: TSCore.Data.List<Column>) {
+            var width = 0;
             columns.each(column => {
                 column.setGrid(this);
+                width += column.getWidth()
             });
+            this._width = width;
             this._columns = columns;
         }
 
         public getColumns(): TSCore.Data.List<Column> {
             return this._columns;
+        }
+
+        public getInnerWidth(): number {
+            return this._width;
+        }
+
+        public getWidth() {
+            // 2px; borders
+            return this._width + 2;
         }
 
         /**

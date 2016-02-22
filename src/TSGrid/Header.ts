@@ -42,15 +42,12 @@ module TSGrid {
 
         public render() {
 
+            var grid = this.getGrid();
+
             var $table = $('<table />');
             $table.append(this.row.render().$el);
 
-            var tableWidth = 0;
-            this.columns.each(column => {
-                tableWidth += column.getWidth();
-            });
-
-            $table.attr('width', tableWidth);
+            $table.attr('width', grid.getInnerWidth());
 
             this.$el.append($table);
 
