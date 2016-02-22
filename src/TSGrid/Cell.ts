@@ -19,6 +19,8 @@ module TSGrid {
 
         public viewEvents = {
             "click": "click",
+            "focusout": "focusout",
+            "focus": "focus",
             "blur": "blur",
             "keypress": "keypress",
             "keydown": "keydown"
@@ -107,6 +109,7 @@ module TSGrid {
             if (command.input()) {
 
                 var char = String.fromCharCode(evt.keyCode);
+
                 this.enterEditMode(char);
             }
         }
@@ -155,6 +158,8 @@ module TSGrid {
         protected click() {
 
             if (this.$el.is(':focus')) {
+
+
                 this.enterEditMode();
             } else {
                 this.activate();
@@ -167,12 +172,16 @@ module TSGrid {
          */
         protected blur() {
 
-            if (this.editModeActive) {
-                this.exitEditMode();
-            }
 
             this.$el.removeClass('active');
             this.$el.removeAttr('tabindex');
+        }
+
+        protected focusout() {
+
+            if (this.editModeActive) {
+                this.exitEditMode();
+            }
         }
 
         /**
@@ -183,6 +192,9 @@ module TSGrid {
 
             this.$el.attr('tabindex', 0);
             this.$el.focus();
+        }
+
+        protected focus() {
             this.$el.addClass('active');
         }
 
@@ -190,7 +202,7 @@ module TSGrid {
          * Alias for blur
          */
         public deactivate() {
-            this.blur();
+            this.$el.blur();
         }
 
         /**
@@ -238,6 +250,8 @@ module TSGrid {
          */
         public enterEditMode(withModelValue?: any) {
 
+            if (this.editModeActive) return;
+
             var editable = TSGrid.callByNeed(this.column.getEditable(), this.column, this.model);
 
             if (editable) {
@@ -267,6 +281,7 @@ module TSGrid {
 
                 setTimeout(() => {
 
+                    this.blur();
                     this.$el.empty();
                     this.$el.append(this.currentEditor.$el);
                     this.$el.addClass('editor');
@@ -300,7 +315,6 @@ module TSGrid {
          * Removes the editor and re-render in display mode.
          */
         public exitEditMode() {
-
             this.editModeActive = false;
             this.$el.removeClass("error");
             this.$el.removeClass(this.currentEditor.getEditorName());
