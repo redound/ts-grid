@@ -40,7 +40,7 @@ module TSGrid {
             var label = document.createTextNode(this.column.getLabel());
 
             this.$el.append(label);
-            this.$el.addClass(this.column.getName());
+            this.$el.addClass(this.column.getClassName());
             this.$el.attr('width', this.column.getWidth());
             this.delegateEvents();
 
