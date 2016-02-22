@@ -45,7 +45,9 @@ module TSGrid {
             var grid = this.getGrid();
 
             var $table = $('<table />');
-            $table.append(this.row.render().$el);
+            var $thead = $('<thead />');
+            $table.append($thead);
+            $thead.append(this.row.render().$el);
 
             $table.attr('width', grid.getInnerWidth());
 
