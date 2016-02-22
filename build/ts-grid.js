@@ -361,6 +361,8 @@ var TSGrid;
             this.editModeActive = false;
             this.viewEvents = {
                 "click": "click",
+                "focusout": "focusout",
+                "focus": "focus",
                 "blur": "blur",
                 "keypress": "keypress",
                 "keydown": "keydown"
@@ -396,12 +398,14 @@ var TSGrid;
             var command = TSGrid.Command.fromEvent(evt);
             if (command.input()) {
                 var char = String.fromCharCode(evt.keyCode);
+                console.debug('enterEditMode - keypress');
                 this.enterEditMode(char);
             }
         };
         Cell.prototype.keydown = function (evt) {
             var command = TSGrid.Command.fromEvent(evt);
             if (command.enter()) {
+                console.debug('enterEditMode - enter');
                 this.enterEditMode();
             }
             if (command.backspace()) {
@@ -419,6 +423,7 @@ var TSGrid;
         };
         Cell.prototype.click = function () {
             if (this.$el.is(':focus')) {
+                console.debug('enterEditMode - click');
                 this.enterEditMode();
             }
             else {
@@ -426,19 +431,26 @@ var TSGrid;
             }
         };
         Cell.prototype.blur = function () {
-            if (this.editModeActive) {
-                this.exitEditMode();
-            }
+            //console.debug('CELL - BLUR', this.model.get(this.column.getName()));
             this.$el.removeClass('active');
             this.$el.removeAttr('tabindex');
         };
+        Cell.prototype.focusout = function () {
+            //console.debug('CELL - FOCUSOUT', this.model.get(this.column.getName()));
+            if (this.editModeActive) {
+                this.exitEditMode();
+            }
+        };
         Cell.prototype.activate = function () {
+            //console.debug('CELL - ACTIVATE', this.model.get(this.column.getName()));
             this.$el.attr('tabindex', 0);
             this.$el.focus();
+        };
+        Cell.prototype.focus = function () {
             this.$el.addClass('active');
         };
         Cell.prototype.deactivate = function () {
-            this.blur();
+            this.$el.blur();
         };
         Cell.prototype.clear = function () {
             this.model.set(this.column.getName(), null);
@@ -456,6 +468,8 @@ var TSGrid;
         };
         Cell.prototype.enterEditMode = function (withModelValue) {
             var _this = this;
+            if (this.editModeActive)
+                return;
             var editable = TSGrid.callByNeed(this.column.getEditable(), this.column, this.model);
             if (editable) {
                 var editorFactory = this.column.getEditor();
@@ -472,6 +486,7 @@ var TSGrid;
                 }
                 this.currentEditor.render();
                 setTimeout(function () {
+                    _this.blur();
                     _this.$el.empty();
                     _this.$el.append(_this.currentEditor.$el);
                     _this.$el.addClass('editor');
@@ -783,7 +798,9 @@ var TSGrid;
         Header.prototype.render = function () {
             var grid = this.getGrid();
             var $table = $('<table />');
-            $table.append(this.row.render().$el);
+            var $thead = $('<thead />');
+            $table.append($thead);
+            $thead.append(this.row.render().$el);
             $table.attr('width', grid.getInnerWidth());
             this.$el.append($table);
             this.delegateEvents();

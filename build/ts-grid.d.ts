@@ -93,6 +93,8 @@ declare module TSGrid {
         currentEditor: CellEditor;
         viewEvents: {
             "click": string;
+            "focusout": string;
+            "focus": string;
             "blur": string;
             "keypress": string;
             "keydown": string;
@@ -106,7 +108,9 @@ declare module TSGrid {
         protected keydown(evt: any): void;
         protected click(): void;
         protected blur(): void;
+        protected focusout(): void;
         activate(): void;
+        protected focus(): void;
         deactivate(): void;
         clear(): void;
         doneEditing(evt: any): void;
