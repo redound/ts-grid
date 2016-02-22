@@ -67,14 +67,14 @@ declare module TSGrid {
         className: string;
         columns: TSCore.Data.List<Column>;
         rowType: IRow;
-        rows: TSCore.Data.List<Row>;
-        items: TSCore.Data.List<TSCore.Data.Model>;
+        rows: TSCore.Data.SortedList<Row>;
+        collection: TSCore.Data.ModelCollection<TSCore.Data.Model>;
         _grid: Grid;
-        constructor(columns: TSCore.Data.List<Column>, items: TSCore.Data.List<TSCore.Data.Model>, rowType?: IRow);
+        constructor(columns: TSCore.Data.List<Column>, collection: TSCore.Data.ModelCollection<TSCore.Data.Model>, rowType?: IRow);
         initialize(): void;
         setGrid(grid: Grid): void;
         getGrid(): Grid;
-        insertRow(model: TSCore.Data.Model, index?: number, items?: TSCore.Data.List<TSCore.Data.Model>): void;
+        insertRow(model: TSCore.Data.Model, index?: number, items?: TSCore.Data.ModelCollection<TSCore.Data.Model>): void;
         insertRows(evt: any): void;
         removeRows(evt: any): void;
         removeRow(model: TSCore.Data.Model): Body;
@@ -156,7 +156,11 @@ declare module TSGrid {
         protected _editable: boolean;
         protected _editor: any;
         protected _formatter: any;
+        protected _cellType: ICell;
+        protected _className: string;
         constructor();
+        className(className: string): Column;
+        getClassName(): string;
         getId(): number;
         setGrid(grid: Grid): void;
         getGrid(): Grid;
@@ -173,6 +177,8 @@ declare module TSGrid {
         getHeaderType(): ICell;
         editor(editor: any): Column;
         getEditor(): any;
+        cellType(cellType: ICell): Column;
+        getCellType(): ICell;
         formatter(formatter: any): Column;
         getFormatter(): any;
     }
@@ -184,6 +190,7 @@ declare module TSGrid {
         protected _header: Header;
         protected _body: Body;
         protected _columns: TSCore.Data.List<Column>;
+        protected _width: number;
         events: TSCore.Events.EventEmitter;
         constructor(header: Header, body: Body, columns: TSCore.Data.List<Column>);
         initialize(): void;
@@ -193,6 +200,8 @@ declare module TSGrid {
         getBody(): Body;
         setColumns(columns: TSCore.Data.List<Column>): void;
         getColumns(): TSCore.Data.List<Column>;
+        getInnerWidth(): number;
+        getWidth(): number;
         insertRow(): Grid;
         removeRow(): Grid;
         render(): Grid;
@@ -232,10 +241,12 @@ declare module TSGrid {
     class Row extends TSCore.App.UI.View {
         tagName: string;
         columns: TSCore.Data.List<Column>;
+        modelId: any;
         model: TSCore.Data.Model;
         cells: TSCore.Data.List<Cell>;
         constructor(columns: TSCore.Data.List<Column>, model: TSCore.Data.Model);
         initialize(): void;
+        setModel(model: TSCore.Data.Model): Row;
         makeCell(column: Column): Cell;
         render(): Row;
         reset(): void;

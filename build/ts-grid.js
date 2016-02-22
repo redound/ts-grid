@@ -170,24 +170,25 @@ var TSGrid;
 (function (TSGrid) {
     var Body = (function (_super) {
         __extends(Body, _super);
-        function Body(columns, items, rowType) {
+        function Body(columns, collection, rowType) {
             _super.call(this);
             this.tagName = 'div';
             this.className = 'ts-grid-body';
             this.rowType = TSGrid.Row;
             this.columns = columns;
-            this.items = items;
+            this.collection = collection;
             this.rowType = rowType;
             this.initialize();
         }
         Body.prototype.initialize = function () {
             var _this = this;
             _super.prototype.initialize.call(this);
-            this.rows = this.items.map(function (model) {
-                return new _this.rowType(_this.columns, model);
+            this.rows = new TSCore.Data.SortedList([], function () { });
+            this.collection.each(function (model) {
+                _this.rows.add(new _this.rowType(_this.columns, model));
             });
-            this.items.events.on(TSCore.Data.List.Events.ADD, function (evt) { return _this.insertRows(evt); });
-            this.items.events.on(TSCore.Data.List.Events.REMOVE, function (evt) { return _this.removeRows(evt); });
+            this.collection.events.on(TSCore.Data.Collection.Events.ADD, function (evt) { return _this.insertRows(evt); });
+            this.collection.events.on(TSCore.Data.Collection.Events.REMOVE, function (evt) { return _this.removeRows(evt); });
         };
         Body.prototype.setGrid = function (grid) {
             this._grid = grid;
@@ -199,12 +200,12 @@ var TSGrid;
         };
         Body.prototype.insertRow = function (model, index, items) {
             if (_.isUndefined(items)) {
-                this.items.add(model);
+                this.collection.add(model);
                 return;
             }
             var row = new this.rowType(this.columns, model);
-            var index = items.indexOf(model);
-            this.rows.insert(row, index);
+            this.rows.add(row);
+            index = this.rows.indexOf(row);
             var $tbody = this.$el.find('tbody');
             var $children = $tbody.children();
             var $rowEl = row.render().$el;
@@ -218,13 +219,15 @@ var TSGrid;
         Body.prototype.insertRows = function (evt) {
             var _this = this;
             var operations = evt.params.operations;
+            console.log('insertRows', operations);
             _.each(operations, function (operation) {
-                _this.insertRow(operation.item, operation.index, _this.items);
+                _this.insertRow(operation.item, operation.index, _this.collection);
             });
         };
         Body.prototype.removeRows = function (evt) {
             var _this = this;
             var operations = evt.params.operations;
+            console.log('removeRows', operations);
             var rows = _.map(operations, function (operation) {
                 return _this.rows.get(operation.index);
             });
@@ -234,10 +237,11 @@ var TSGrid;
             });
         };
         Body.prototype.removeRow = function (model) {
-            this.items.remove(model);
+            this.collection.remove(model);
             return this;
         };
         Body.prototype.render = function () {
+            var grid = this.getGrid();
             this.$el.empty();
             var $table = $('<table />');
             var $tbody = $('<tbody />');
@@ -245,11 +249,7 @@ var TSGrid;
             this.rows.each(function (row) {
                 $tbody.append(row.render().$el);
             });
-            var tableWidth = 0;
-            this.columns.each(function (column) {
-                tableWidth += column.getWidth();
-            });
-            $table.attr('width', tableWidth);
+            $table.attr('width', grid.getInnerWidth());
             this.$el.append($table);
             this.delegateEvents();
             return this;
@@ -266,14 +266,15 @@ var TSGrid;
             var column = evt.params.column;
             var command = evt.params.command;
             var cell, renderable, editable, m, n;
-            var i = this.items.indexOf(model);
+            var row = this.rows.whereFirst({ modelId: model.id });
+            var i = this.rows.indexOf(row);
             var j = this.columns.indexOf(column);
             if (j === -1)
                 return this;
             var currentCell = this.rows.get(i).cells.get(j);
             if (command.navigate() || command.blurred()) {
                 var l = this.columns.length;
-                var maxOffset = l * this.items.length;
+                var maxOffset = l * this.collection.length;
                 if (command.blurred()) {
                     currentCell.deactivate();
                 }
@@ -380,9 +381,14 @@ var TSGrid;
             this.$el.empty();
             var formatter = this.column.getFormatter();
             var modelValue = this.model.get(this.column.getName());
-            var value = formatter ? formatter(modelValue) : modelValue;
-            this.$el.text(value);
+            var value = formatter ? formatter(this.model) : modelValue;
+            this.$el.html(value);
             this.$el.attr('width', this.column.getWidth());
+            this.$el.css('max-width', this.column.getWidth());
+            var columnClassName = this.column.getClassName();
+            if (columnClassName) {
+                this.$el.addClass(columnClassName);
+            }
             this.delegateEvents();
             return this;
         };
@@ -593,8 +599,16 @@ var TSGrid;
         function Column() {
             this._renderable = true;
             this._editable = false;
+            this._cellType = TSGrid.Cell;
             this._uniqId = parseInt(_.uniqueId());
         }
+        Column.prototype.className = function (className) {
+            this._className = className;
+            return this;
+        };
+        Column.prototype.getClassName = function () {
+            return this._className;
+        };
         Column.prototype.getId = function () {
             return this._uniqId;
         };
@@ -649,6 +663,13 @@ var TSGrid;
         Column.prototype.getEditor = function () {
             return this._editor;
         };
+        Column.prototype.cellType = function (cellType) {
+            this._cellType = cellType;
+            return this;
+        };
+        Column.prototype.getCellType = function () {
+            return this._cellType;
+        };
         Column.prototype.formatter = function (formatter) {
             this._formatter = formatter;
             return this;
@@ -693,13 +714,22 @@ var TSGrid;
         };
         Grid.prototype.setColumns = function (columns) {
             var _this = this;
+            var width = 0;
             columns.each(function (column) {
                 column.setGrid(_this);
+                width += column.getWidth();
             });
+            this._width = width;
             this._columns = columns;
         };
         Grid.prototype.getColumns = function () {
             return this._columns;
+        };
+        Grid.prototype.getInnerWidth = function () {
+            return this._width;
+        };
+        Grid.prototype.getWidth = function () {
+            return this._width + 2;
         };
         Grid.prototype.insertRow = function () {
             this._body.insertRow.apply(this._body, arguments);
@@ -751,13 +781,10 @@ var TSGrid;
             return this._grid;
         };
         Header.prototype.render = function () {
+            var grid = this.getGrid();
             var $table = $('<table />');
             $table.append(this.row.render().$el);
-            var tableWidth = 0;
-            this.columns.each(function (column) {
-                tableWidth += column.getWidth();
-            });
-            $table.attr('width', tableWidth);
+            $table.attr('width', grid.getInnerWidth());
             this.$el.append($table);
             this.delegateEvents();
             return this;
@@ -788,7 +815,7 @@ var TSGrid;
             this.$el.empty();
             var label = document.createTextNode(this.column.getLabel());
             this.$el.append(label);
-            this.$el.addClass(this.column.getName());
+            this.$el.addClass(this.column.getClassName());
             this.$el.attr('width', this.column.getWidth());
             this.delegateEvents();
             return this;
@@ -805,7 +832,7 @@ var TSGrid;
             _super.call(this);
             this.tagName = 'tr';
             this.columns = columns;
-            this.model = model;
+            this.setModel(model);
             this.cells = new TSCore.Data.List();
             this.initialize();
         }
@@ -816,8 +843,16 @@ var TSGrid;
                 _this.cells.add(_this.makeCell(column));
             });
         };
+        Row.prototype.setModel = function (model) {
+            if (!model)
+                return;
+            this.model = model;
+            this.modelId = model.getId();
+            return this;
+        };
         Row.prototype.makeCell = function (column) {
-            return new TSGrid.Cell(column, this.model);
+            var cellType = column.getCellType();
+            return new cellType(column, this.model);
         };
         Row.prototype.render = function () {
             this.$el.empty();
