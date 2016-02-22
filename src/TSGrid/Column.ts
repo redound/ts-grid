@@ -22,8 +22,21 @@ module TSGrid {
 
         protected _formatter: any;
 
+        protected _cellType: ICell = Cell;
+
+        protected _className: string;
+
         public constructor() {
             this._uniqId = parseInt(<any>_.uniqueId());
+        }
+
+        public className(className: string): Column {
+            this._className = className;
+            return this;
+        }
+
+        public getClassName(): string {
+            return this._className;
         }
 
         public getId() {
@@ -96,6 +109,15 @@ module TSGrid {
         public getEditor(): any {
 
             return this._editor;
+        }
+
+        public cellType(cellType: ICell): Column {
+            this._cellType = cellType;
+            return this;
+        }
+
+        public getCellType(): ICell {
+            return this._cellType;
         }
 
         public formatter(formatter: any): Column {
