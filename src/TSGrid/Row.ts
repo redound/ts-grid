@@ -10,6 +10,8 @@ module TSGrid {
 
         public columns: TSCore.Data.List<Column>;
 
+        public modelId: any;
+
         public model: TSCore.Data.Model;
 
         public cells: TSCore.Data.List<Cell>;
@@ -19,7 +21,7 @@ module TSGrid {
             super();
 
             this.columns = columns;
-            this.model = model;
+            this.setModel(model);
             this.cells = new TSCore.Data.List<Cell>();
 
             this.initialize();
@@ -34,9 +36,19 @@ module TSGrid {
             });
         }
 
+        public setModel(model: TSCore.Data.Model) {
+
+            if (!model) return;
+            this.model = model;
+            this.modelId = model.getId();
+            return this;
+        }
+
         public makeCell(column: Column) {
 
-            return new Cell(
+            var cellType = column.getCellType();
+
+            return new cellType(
                 column,
                 this.model
             );
