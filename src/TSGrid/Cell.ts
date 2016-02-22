@@ -67,11 +67,11 @@ module TSGrid {
          * rendering the element in display mode.
          *
          * By default the Model's value for this cell
-         * is set as text.
+         * is set as value.
          *
          * When a formatter is given
          * the value will first be formatted before being
-         * set as text.
+         * set as value.
          *
          * Also, the width from the column definition
          * will be applied on this cell.
@@ -82,9 +82,14 @@ module TSGrid {
             this.$el.empty();
             var formatter = this.column.getFormatter();
             var modelValue = this.model.get(this.column.getName());
-            var value = formatter ? formatter(modelValue) : modelValue;
-            this.$el.text(value);
+            var value = formatter ? formatter(this.model) : modelValue;
+            this.$el.html(value);
             this.$el.attr('width', this.column.getWidth());
+            this.$el.css('max-width', this.column.getWidth());
+            var columnClassName = this.column.getClassName();
+            if (columnClassName) {
+                this.$el.addClass(columnClassName);
+            }
             this.delegateEvents();
             return this;
         }
