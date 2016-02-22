@@ -16,19 +16,19 @@ module TSGrid {
 
         public rowType:IRow = Row;
 
-        public rows:TSCore.Data.List<Row>;
+        public rows:TSCore.Data.SortedList<Row>;
 
-        public items:TSCore.Data.List<TSCore.Data.Model>;
+        public collection:TSCore.Data.ModelCollection<TSCore.Data.Model>;
 
         public _grid:Grid;
 
-        public constructor(columns:TSCore.Data.List<Column>, items:TSCore.Data.List<TSCore.Data.Model>, rowType?:IRow) {
+        public constructor(columns:TSCore.Data.List<Column>, collection:TSCore.Data.ModelCollection<TSCore.Data.Model>, rowType?:IRow) {
 
             super();
 
             this.columns = columns;
 
-            this.items = items;
+            this.collection = collection;
 
             this.rowType = rowType;
 
@@ -42,17 +42,19 @@ module TSGrid {
 
             super.initialize();
 
-            this.rows = this.items.map<Row>(model => {
+            this.rows = new TSCore.Data.SortedList<Row>([], () => {});
 
-                return new this.rowType(
+            this.collection.each(model => {
+
+                this.rows.add(new this.rowType(
                     this.columns,
                     model
-                );
+                ));
             });
 
-            this.items.events.on(TSCore.Data.List.Events.ADD, evt => this.insertRows(evt));
+            this.collection.events.on(TSCore.Data.Collection.Events.ADD, evt => this.insertRows(evt));
 
-            this.items.events.on(TSCore.Data.List.Events.REMOVE, evt => this.removeRows(evt));
+            this.collection.events.on(TSCore.Data.Collection.Events.REMOVE, evt => this.removeRows(evt));
         }
 
         /**
@@ -70,7 +72,7 @@ module TSGrid {
          * Get the Body's Grid instance.
          * @returns {Grid}
          */
-        public getGrid() {
+        public getGrid(): Grid {
             return this._grid;
         }
 
@@ -80,11 +82,11 @@ module TSGrid {
          * @param index
          * @param items
          */
-        public insertRow(model:TSCore.Data.Model, index?:number, items?:TSCore.Data.List<TSCore.Data.Model>) {
+        public insertRow(model:TSCore.Data.Model, index?:number, items?:TSCore.Data.ModelCollection<TSCore.Data.Model>) {
 
             // insertRow() is called directly
             if (_.isUndefined(items)) {
-                this.items.add(model);
+                this.collection.add(model);
                 return;
             }
 
@@ -93,8 +95,9 @@ module TSGrid {
                 model
             );
 
-            var index = items.indexOf(model);
-            this.rows.insert(row, index);
+            this.rows.add(row);
+
+            index = this.rows.indexOf(row);
 
             var $tbody = this.$el.find('tbody');
 
@@ -115,10 +118,12 @@ module TSGrid {
          */
         public insertRows(evt) {
 
-            var operations:TSCore.Data.IListOperation[] = evt.params.operations;
+            var operations:TSCore.Data.ICollectionOperation<TSCore.Data.Model>[] = evt.params.operations;
+
+            console.log('insertRows', operations);
 
             _.each(operations, operation => {
-                this.insertRow(operation.item, operation.index, this.items);
+                this.insertRow(operation.item, operation.index, this.collection);
             });
         }
 
@@ -128,7 +133,9 @@ module TSGrid {
          */
         public removeRows(evt) {
 
-            var operations:TSCore.Data.IListOperation[] = evt.params.operations;
+            var operations:TSCore.Data.ICollectionOperation<TSCore.Data.Model>[] = evt.params.operations;
+
+            console.log('removeRows', operations);
 
             // First gather row objects, when we delete directly indexes
             // won't be correct
@@ -151,7 +158,7 @@ module TSGrid {
          */
         public removeRow(model:TSCore.Data.Model) {
 
-            this.items.remove(model);
+            this.collection.remove(model);
 
             return this;
         }
@@ -162,6 +169,8 @@ module TSGrid {
          * @chainable
          */
         public render():Body {
+
+            var grid = this.getGrid();
 
             this.$el.empty();
 
@@ -174,12 +183,7 @@ module TSGrid {
                 $tbody.append(row.render().$el);
             });
 
-            var tableWidth = 0;
-            this.columns.each(column => {
-                tableWidth += column.getWidth()
-            });
-
-            $table.attr('width', tableWidth);
+            $table.attr('width', grid.getInnerWidth());
 
             this.$el.append($table);
 
@@ -209,7 +213,9 @@ module TSGrid {
             var command: Command = evt.params.command;
             var cell, renderable, editable, m, n;
 
-            var i = this.items.indexOf(model);
+            var row = this.rows.whereFirst({ modelId: model.id });
+
+            var i = this.rows.indexOf(row);
             var j = this.columns.indexOf(column);
 
             if (j === -1) return this;
@@ -218,7 +224,7 @@ module TSGrid {
 
             if (command.navigate() || command.blurred()) {
                 var l = this.columns.length;
-                var maxOffset = l * this.items.length;
+                var maxOffset = l * this.collection.length;
 
                 if (command.blurred()) {
 
