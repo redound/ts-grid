@@ -136,7 +136,10 @@ module TSGrid {
             if (command.backspace()) {
 
                 evt.preventDefault();
-                this.clear();
+
+                if (this.column.getAllowNull()) {
+                    this.clear();
+                }
             }
 
             if (command.navigate()) {

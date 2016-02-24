@@ -20,6 +20,8 @@ module TSGrid {
 
         protected _editor: any;
 
+        protected _allowNull: boolean = false;
+
         protected _formatter: any;
 
         protected _cellType: ICell = Cell;
@@ -109,6 +111,15 @@ module TSGrid {
         public getEditor(): any {
 
             return this._editor;
+        }
+
+        public allowNull(allowNull: boolean = true): Column {
+            this._allowNull = allowNull;
+            return this;
+        }
+
+        public getAllowNull() {
+            return this._allowNull;
         }
 
         public cellType(cellType: ICell): Column {

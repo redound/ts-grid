@@ -398,19 +398,19 @@ var TSGrid;
             var command = TSGrid.Command.fromEvent(evt);
             if (command.input()) {
                 var char = String.fromCharCode(evt.keyCode);
-                console.debug('enterEditMode - keypress');
                 this.enterEditMode(char);
             }
         };
         Cell.prototype.keydown = function (evt) {
             var command = TSGrid.Command.fromEvent(evt);
             if (command.enter()) {
-                console.debug('enterEditMode - enter');
                 this.enterEditMode();
             }
             if (command.backspace()) {
                 evt.preventDefault();
-                this.clear();
+                if (this.column.getAllowNull()) {
+                    this.clear();
+                }
             }
             if (command.navigate()) {
                 var grid = this.column.getGrid();
@@ -423,7 +423,6 @@ var TSGrid;
         };
         Cell.prototype.click = function () {
             if (this.$el.is(':focus')) {
-                console.debug('enterEditMode - click');
                 this.enterEditMode();
             }
             else {
@@ -431,18 +430,15 @@ var TSGrid;
             }
         };
         Cell.prototype.blur = function () {
-            //console.debug('CELL - BLUR', this.model.get(this.column.getName()));
             this.$el.removeClass('active');
             this.$el.removeAttr('tabindex');
         };
         Cell.prototype.focusout = function () {
-            //console.debug('CELL - FOCUSOUT', this.model.get(this.column.getName()));
             if (this.editModeActive) {
                 this.exitEditMode();
             }
         };
         Cell.prototype.activate = function () {
-            //console.debug('CELL - ACTIVATE', this.model.get(this.column.getName()));
             this.$el.attr('tabindex', 0);
             this.$el.focus();
         };
@@ -614,6 +610,7 @@ var TSGrid;
         function Column() {
             this._renderable = true;
             this._editable = false;
+            this._allowNull = false;
             this._cellType = TSGrid.Cell;
             this._uniqId = parseInt(_.uniqueId());
         }
@@ -677,6 +674,14 @@ var TSGrid;
         };
         Column.prototype.getEditor = function () {
             return this._editor;
+        };
+        Column.prototype.allowNull = function (allowNull) {
+            if (allowNull === void 0) { allowNull = true; }
+            this._allowNull = allowNull;
+            return this;
+        };
+        Column.prototype.getAllowNull = function () {
+            return this._allowNull;
         };
         Column.prototype.cellType = function (cellType) {
             this._cellType = cellType;
