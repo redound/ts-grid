@@ -106,7 +106,7 @@ module TSGrid {
 
             var command = Command.fromEvent(evt);
 
-            if (command.input()) {
+            if (this.column.getEditOnInput() && command.input()) {
 
                 var char = String.fromCharCode(evt.keyCode);
 

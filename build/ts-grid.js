@@ -396,7 +396,7 @@ var TSGrid;
         };
         Cell.prototype.keypress = function (evt) {
             var command = TSGrid.Command.fromEvent(evt);
-            if (command.input()) {
+            if (this.column.getEditOnInput() && command.input()) {
                 var char = String.fromCharCode(evt.keyCode);
                 this.enterEditMode(char);
             }
@@ -609,6 +609,7 @@ var TSGrid;
     var Column = (function () {
         function Column() {
             this._renderable = true;
+            this._editOnInput = false;
             this._editable = false;
             this._allowNull = false;
             this._cellType = TSGrid.Cell;
@@ -665,6 +666,14 @@ var TSGrid;
         Column.prototype.getEditable = function () {
             return this._editable;
         };
+        Column.prototype.editOnInput = function (editOnInput) {
+            if (editOnInput === void 0) { editOnInput = true; }
+            this._editOnInput = editOnInput;
+            return this;
+        };
+        Column.prototype.getEditOnInput = function () {
+            return this._editOnInput;
+        };
         Column.prototype.getHeaderType = function () {
             return TSGrid.resolveNameToClass('header-cell');
         };
@@ -696,6 +705,13 @@ var TSGrid;
         };
         Column.prototype.getFormatter = function () {
             return this._formatter;
+        };
+        Column.prototype.parser = function (parser) {
+            this._parser = parser;
+            return this;
+        };
+        Column.prototype.getParser = function () {
+            return this._parser;
         };
         return Column;
     })();

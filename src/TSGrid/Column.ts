@@ -16,11 +16,15 @@ module TSGrid {
 
         protected _renderable: boolean = true;
 
+        protected _editOnInput: boolean = false;
+
         protected _editable: boolean = false;
 
         protected _editor: any;
 
         protected _allowNull: boolean = false;
+
+        protected _parser: any;
 
         protected _formatter: any;
 
@@ -98,6 +102,15 @@ module TSGrid {
             return this._editable;
         }
 
+        public editOnInput(editOnInput: boolean = true): Column {
+            this._editOnInput = editOnInput;
+            return this;
+        }
+
+        public getEditOnInput(): boolean {
+            return this._editOnInput
+        }
+
         public getHeaderType(): ICell {
             return TSGrid.resolveNameToClass<ICell>('header-cell');
         }
@@ -138,6 +151,15 @@ module TSGrid {
 
         public getFormatter() {
             return this._formatter;
+        }
+
+        public parser(parser: any): Column {
+            this._parser = parser;
+            return this;
+        }
+
+        public getParser(): any {
+            return this._parser;
         }
     }
 }

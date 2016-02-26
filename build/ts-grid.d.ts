@@ -157,9 +157,11 @@ declare module TSGrid {
         protected _name: string;
         protected _label: string;
         protected _renderable: boolean;
+        protected _editOnInput: boolean;
         protected _editable: boolean;
         protected _editor: any;
         protected _allowNull: boolean;
+        protected _parser: any;
         protected _formatter: any;
         protected _cellType: ICell;
         protected _className: string;
@@ -179,6 +181,8 @@ declare module TSGrid {
         getRenderable(): boolean;
         editable(editable: boolean): Column;
         getEditable(): boolean;
+        editOnInput(editOnInput?: boolean): Column;
+        getEditOnInput(): boolean;
         getHeaderType(): ICell;
         editor(editor: any): Column;
         getEditor(): any;
@@ -188,6 +192,8 @@ declare module TSGrid {
         getCellType(): ICell;
         formatter(formatter: any): Column;
         getFormatter(): any;
+        parser(parser: any): Column;
+        getParser(): any;
     }
 }
 declare module TSGrid {
