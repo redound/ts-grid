@@ -36,7 +36,7 @@ module TSGrid {
             });
         }
 
-        public setModel(model: TSCore.Data.Model) {
+        public setModel(model: TSCore.Data.Model): this {
 
             if (!model) return;
             this.model = model;
@@ -57,7 +57,7 @@ module TSGrid {
         /**
          * Renders a row of cells for this row's model
          */
-        public render(): Row {
+        public render(): this {
 
             this.$el.empty();
 

@@ -168,7 +168,7 @@ module TSGrid {
          * @returns {TSGrid.Body}
          * @chainable
          */
-        public render():Body {
+        public render(): this {
 
             var grid = this.getGrid();
 

@@ -24,6 +24,10 @@ module TSGrid {
 
         protected _allowNull: boolean = false;
 
+        protected _setter: any;
+
+        protected _getter: any;
+
         protected _parser: any;
 
         protected _formatter: any;
@@ -36,7 +40,7 @@ module TSGrid {
             this._uniqId = parseInt(<any>_.uniqueId());
         }
 
-        public className(className: string): Column {
+        public className(className: string): this {
             this._className = className;
             return this;
         }
@@ -57,7 +61,7 @@ module TSGrid {
             return this._grid;
         }
 
-        public width(width: number): Column {
+        public width(width: number): this {
             this._width = width;
             return this;
         }
@@ -66,7 +70,7 @@ module TSGrid {
             return this._width;
         }
 
-        public name(name: string): Column {
+        public name(name: string): this {
             this._name = name;
             return this;
         }
@@ -75,7 +79,7 @@ module TSGrid {
             return this._name;
         }
 
-        public label(label: string): Column {
+        public label(label: string): this {
             this._label = label;
             return this;
         }
@@ -84,7 +88,7 @@ module TSGrid {
             return this._label;
         }
 
-        public renderable(renderable: boolean): Column {
+        public renderable(renderable: boolean): this {
             this._renderable = renderable;
             return this;
         }
@@ -93,7 +97,7 @@ module TSGrid {
             return this._renderable;
         }
 
-        public editable(editable: boolean): Column {
+        public editable(editable: boolean): this {
             this._editable = editable;
             return this;
         }
@@ -102,7 +106,7 @@ module TSGrid {
             return this._editable;
         }
 
-        public editOnInput(editOnInput: boolean = true): Column {
+        public editOnInput(editOnInput: boolean = true): this {
             this._editOnInput = editOnInput;
             return this;
         }
@@ -115,7 +119,7 @@ module TSGrid {
             return TSGrid.resolveNameToClass<ICell>('header-cell');
         }
 
-        public editor(editor: any): Column {
+        public editor(editor: any): this {
 
             this._editor = editor;
             return this;
@@ -126,7 +130,7 @@ module TSGrid {
             return this._editor;
         }
 
-        public allowNull(allowNull: boolean = true): Column {
+        public allowNull(allowNull: boolean = true): this {
             this._allowNull = allowNull;
             return this;
         }
@@ -135,7 +139,7 @@ module TSGrid {
             return this._allowNull;
         }
 
-        public cellType(cellType: ICell): Column {
+        public cellType(cellType: ICell): this {
             this._cellType = cellType;
             return this;
         }
@@ -144,22 +148,40 @@ module TSGrid {
             return this._cellType;
         }
 
-        public formatter(formatter: any): Column {
-            this._formatter = formatter;
+        public setter(setter: any): this {
+            this._setter = setter;
             return this;
         }
 
-        public getFormatter() {
-            return this._formatter;
+        public getSetter() {
+            return this._setter;
         }
 
-        public parser(parser: any): Column {
+        public getter(getter: any): this {
+            this._getter = getter;
+            return this;
+        }
+
+        public getGetter() {
+            return this._getter;
+        }
+
+        public parser(parser: any): this {
             this._parser = parser;
             return this;
         }
 
         public getParser(): any {
             return this._parser;
+        }
+
+        public formatter(formatter: any): this {
+            this._formatter = formatter;
+            return this;
+        }
+
+        public getFormatter() {
+            return this._formatter;
         }
     }
 }

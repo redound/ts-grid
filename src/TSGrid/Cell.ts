@@ -80,7 +80,7 @@ module TSGrid {
          * @returns {TSGrid.Cell}
          * @chainable
          */
-        public render(): Cell {
+        public render(): this {
             this.$el.empty();
             var formatter = this.column.getFormatter();
             var modelValue = this.model.get(this.column.getName());
@@ -332,7 +332,7 @@ module TSGrid {
          *
          * @chainable
          */
-        public remove(): Cell {
+        public remove(): this {
 
             if (this.currentEditor) {
                 this.currentEditor.remove.apply(this.currentEditor, arguments);

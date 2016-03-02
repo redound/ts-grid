@@ -31,7 +31,7 @@ module TSGrid {
             );
         }
 
-        public setGrid(grid: Grid): Header {
+        public setGrid(grid: Grid): this {
             this._grid = grid;
             return this;
         }
@@ -40,7 +40,7 @@ module TSGrid {
             return this._grid;
         }
 
-        public render() {
+        public render(): this {
 
             var grid = this.getGrid();
 

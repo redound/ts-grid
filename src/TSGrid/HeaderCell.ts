@@ -33,7 +33,7 @@ module TSGrid {
             // TODO: Implement.
         }
 
-        public render() {
+        public render(): this {
 
             this.$el.empty();
 

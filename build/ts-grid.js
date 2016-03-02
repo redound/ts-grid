@@ -15,7 +15,6 @@ var TSGrid;
     })(TSGrid.CommandTypes || (TSGrid.CommandTypes = {}));
     var CommandTypes = TSGrid.CommandTypes;
 })(TSGrid || (TSGrid = {}));
-///<reference path="CommandTypes.ts"/>
 var TSGrid;
 (function (TSGrid) {
     var Command = (function () {
@@ -158,13 +157,10 @@ var TSGrid;
     })();
     TSGrid.Command = Command;
 })(TSGrid || (TSGrid = {}));
-///<reference path="Command.ts"/>
-///<reference path="CommandTypes.ts"/>
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
-    __.prototype = b.prototype;
-    d.prototype = new __();
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 var TSGrid;
 (function (TSGrid) {
@@ -568,10 +564,20 @@ var TSGrid;
             return this.initialModelValue;
         };
         CellEditor.prototype.setModelValue = function (value) {
-            this.model.set(this.column.getName(), value);
+            var setter = this.column.getSetter();
+            if (setter) {
+                setter(this.model, value);
+            }
+            else {
+                this.model.set(this.column.getName(), value);
+            }
             return this;
         };
         CellEditor.prototype.getModelValue = function () {
+            var getter = this.column.getGetter();
+            if (getter) {
+                return getter(this.model);
+            }
             return this.model.get(this.column.getName());
         };
         CellEditor.prototype.save = function (action, value) {
@@ -603,7 +609,6 @@ var TSGrid;
     })(TSCore.App.UI.View);
     TSGrid.CellEditor = CellEditor;
 })(TSGrid || (TSGrid = {}));
-///<reference path="Cell.ts"/>
 var TSGrid;
 (function (TSGrid) {
     var Column = (function () {
@@ -699,12 +704,19 @@ var TSGrid;
         Column.prototype.getCellType = function () {
             return this._cellType;
         };
-        Column.prototype.formatter = function (formatter) {
-            this._formatter = formatter;
+        Column.prototype.setter = function (setter) {
+            this._setter = setter;
             return this;
         };
-        Column.prototype.getFormatter = function () {
-            return this._formatter;
+        Column.prototype.getSetter = function () {
+            return this._setter;
+        };
+        Column.prototype.getter = function (getter) {
+            this._getter = getter;
+            return this;
+        };
+        Column.prototype.getGetter = function () {
+            return this._getter;
         };
         Column.prototype.parser = function (parser) {
             this._parser = parser;
@@ -712,6 +724,13 @@ var TSGrid;
         };
         Column.prototype.getParser = function () {
             return this._parser;
+        };
+        Column.prototype.formatter = function (formatter) {
+            this._formatter = formatter;
+            return this;
+        };
+        Column.prototype.getFormatter = function () {
+            return this._formatter;
         };
         return Column;
     })();
@@ -737,6 +756,7 @@ var TSGrid;
         Grid.prototype.setHeader = function (header) {
             header.setGrid(this);
             this._header = header;
+            return this;
         };
         Grid.prototype.getHeader = function () {
             return this._header;
@@ -744,6 +764,7 @@ var TSGrid;
         Grid.prototype.setBody = function (body) {
             body.setGrid(this);
             this._body = body;
+            return this;
         };
         Grid.prototype.getBody = function () {
             return this._body;
@@ -757,6 +778,7 @@ var TSGrid;
             });
             this._width = width;
             this._columns = columns;
+            return this;
         };
         Grid.prototype.getColumns = function () {
             return this._columns;
@@ -908,7 +930,6 @@ var TSGrid;
     })(TSCore.App.UI.View);
     TSGrid.Row = Row;
 })(TSGrid || (TSGrid = {}));
-///<reference path="Row.ts"/>
 var TSGrid;
 (function (TSGrid) {
     var HeaderRow = (function (_super) {
@@ -967,19 +988,4 @@ var TSGrid;
         TSGridEvents.NAVIGATE = "tsGrid:navigate";
     })(TSGridEvents = TSGrid.TSGridEvents || (TSGrid.TSGridEvents = {}));
 })(TSGrid || (TSGrid = {}));
-/// <reference path="../../ts-core/build/ts-core.d.ts" />
-/// <reference path="../../ts-core-app/build/ts-core-app.d.ts" />
-/// <reference path="../typings/tsd.d.ts" />
-/// <reference path="TSGrid/Body.ts" />
-/// <reference path="TSGrid/Cell.ts" />
-/// <reference path="TSGrid/CellEditor.ts" />
-/// <reference path="TSGrid/Column.ts" />
-/// <reference path="TSGrid/Command.ts" />
-/// <reference path="TSGrid/CommandTypes.ts" />
-/// <reference path="TSGrid/Grid.ts" />
-/// <reference path="TSGrid/Header.ts" />
-/// <reference path="TSGrid/HeaderCell.ts" />
-/// <reference path="TSGrid/HeaderRow.ts" />
-/// <reference path="TSGrid/Row.ts" />
-/// <reference path="TSGrid/TSGrid.ts" />
 //# sourceMappingURL=ts-grid.js.map

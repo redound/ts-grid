@@ -34,7 +34,7 @@ module TSGrid {
          * @returns {TSGrid.CellEditor}
          * @chainable
          */
-        public setColumn(column: Column): CellEditor {
+        public setColumn(column: Column): this {
             this.column = column;
             return this;
         }
@@ -53,7 +53,7 @@ module TSGrid {
          * @returns {TSGrid.CellEditor}
          * @chainable
          */
-        public setModel(model: TSCore.Data.Model): CellEditor {
+        public setModel(model: TSCore.Data.Model): this {
             this.model = model;
             return this;
         }
@@ -72,7 +72,7 @@ module TSGrid {
          * @returns {TSGrid.CellEditor}
          * @chainable
          */
-        public setEditorName(editorName: string): CellEditor {
+        public setEditorName(editorName: string): this {
             this.editorName = editorName;
             return this;
         }
@@ -90,7 +90,7 @@ module TSGrid {
          * @param value
          * @chainable
          */
-        public setInitialModelValue(value: any): CellEditor {
+        public setInitialModelValue(value: any): this {
             this.initialModelValue = value;
             return this;
         }
@@ -110,7 +110,15 @@ module TSGrid {
          * @chainable
          */
         public setModelValue(value: any) {
-            this.model.set(this.column.getName(), value);
+
+            var setter = this.column.getSetter();
+
+            if (setter) {
+                setter(this.model, value);
+            } else {
+                this.model.set(this.column.getName(), value);
+            }
+
             return this;
         }
 
@@ -119,6 +127,13 @@ module TSGrid {
          * @returns {*|any}
          */
         public getModelValue(): any {
+
+            var getter = this.column.getGetter();
+
+            if (getter) {
+                return getter(this.model);
+            }
+
             return this.model.get(this.column.getName());
         }
 

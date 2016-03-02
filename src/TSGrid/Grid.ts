@@ -32,25 +32,27 @@ module TSGrid {
             super.initialize();
         }
 
-        public setHeader(header: Header) {
+        public setHeader(header: Header): this {
             header.setGrid(this);
             this._header = header;
+            return this;
         }
 
         public getHeader(): Header {
             return this._header;
         }
 
-        public setBody(body: Body) {
+        public setBody(body: Body): this {
             body.setGrid(this);
             this._body = body;
+            return this;
         }
 
         public getBody(): Body {
             return this._body;
         }
 
-        public setColumns(columns: TSCore.Data.List<Column>) {
+        public setColumns(columns: TSCore.Data.List<Column>): this {
             var width = 0;
             columns.each(column => {
                 column.setGrid(this);
@@ -58,6 +60,7 @@ module TSGrid {
             });
             this._width = width;
             this._columns = columns;
+            return this;
         }
 
         public getColumns(): TSCore.Data.List<Column> {
@@ -97,7 +100,7 @@ module TSGrid {
          * grid when it has successfully been rendered.
          * @returns {TSGrid.Grid}
          */
-        public render() {
+        public render(): this {
 
             this.$el.empty();
 
