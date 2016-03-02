@@ -22,7 +22,9 @@ module TSGrid {
 
         protected _editor: any;
 
-        protected _allowNull: boolean = false;
+        protected _onClear : any;
+
+        protected _allowClear: boolean = false;
 
         protected _setter: any;
 
@@ -130,13 +132,22 @@ module TSGrid {
             return this._editor;
         }
 
-        public allowNull(allowNull: boolean = true): this {
-            this._allowNull = allowNull;
+        public allowClear(allowClear: boolean = true): this {
+            this._allowClear = allowClear;
             return this;
         }
 
-        public getAllowNull() {
-            return this._allowNull;
+        public getAllowClear() {
+            return this._allowClear;
+        }
+
+        public onClear(onClear: any): this {
+            this._onClear = onClear;
+            return this;
+        }
+
+        public getOnClear(): any {
+            return this._onClear;
         }
 
         public cellType(cellType: ICell): this {

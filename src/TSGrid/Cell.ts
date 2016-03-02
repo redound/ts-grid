@@ -138,7 +138,7 @@ module TSGrid {
 
                 evt.preventDefault();
 
-                if (this.column.getAllowNull()) {
+                if (this.column.getAllowClear()) {
                     this.clear();
                 }
             }
@@ -214,10 +214,13 @@ module TSGrid {
          */
         public clear() {
 
+            var onClear = this.column.getOnClear();
             var setter = this.column.getSetter();
 
-            if (setter) {
-                setter(this.model);
+            if (onClear) {
+                onClear(this.model);
+            } else if (setter) {
+                setter(this.model, null);
             } else {
                 this.model.set(this.column.getName(), null);
             }

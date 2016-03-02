@@ -405,7 +405,7 @@ var TSGrid;
             }
             if (command.backspace()) {
                 evt.preventDefault();
-                if (this.column.getAllowNull()) {
+                if (this.column.getAllowClear()) {
                     this.clear();
                 }
             }
@@ -446,9 +446,13 @@ var TSGrid;
             this.$el.blur();
         };
         Cell.prototype.clear = function () {
+            var onClear = this.column.getOnClear();
             var setter = this.column.getSetter();
-            if (setter) {
-                setter(this.model);
+            if (onClear) {
+                onClear(this.model);
+            }
+            else if (setter) {
+                setter(this.model, null);
             }
             else {
                 this.model.set(this.column.getName(), null);
@@ -623,7 +627,7 @@ var TSGrid;
             this._renderable = true;
             this._editOnInput = false;
             this._editable = false;
-            this._allowNull = false;
+            this._allowClear = false;
             this._cellType = TSGrid.Cell;
             this._uniqId = parseInt(_.uniqueId());
         }
@@ -696,13 +700,20 @@ var TSGrid;
         Column.prototype.getEditor = function () {
             return this._editor;
         };
-        Column.prototype.allowNull = function (allowNull) {
-            if (allowNull === void 0) { allowNull = true; }
-            this._allowNull = allowNull;
+        Column.prototype.allowClear = function (allowClear) {
+            if (allowClear === void 0) { allowClear = true; }
+            this._allowClear = allowClear;
             return this;
         };
-        Column.prototype.getAllowNull = function () {
-            return this._allowNull;
+        Column.prototype.getAllowClear = function () {
+            return this._allowClear;
+        };
+        Column.prototype.onClear = function (onClear) {
+            this._onClear = onClear;
+            return this;
+        };
+        Column.prototype.getOnClear = function () {
+            return this._onClear;
         };
         Column.prototype.cellType = function (cellType) {
             this._cellType = cellType;

@@ -160,7 +160,8 @@ declare module TSGrid {
         protected _editOnInput: boolean;
         protected _editable: boolean;
         protected _editor: any;
-        protected _allowNull: boolean;
+        protected _onClear: any;
+        protected _allowClear: boolean;
         protected _setter: any;
         protected _getter: any;
         protected _parser: any;
@@ -188,8 +189,10 @@ declare module TSGrid {
         getHeaderType(): ICell;
         editor(editor: any): this;
         getEditor(): any;
-        allowNull(allowNull?: boolean): this;
-        getAllowNull(): boolean;
+        allowClear(allowClear?: boolean): this;
+        getAllowClear(): boolean;
+        onClear(onClear: any): this;
+        getOnClear(): any;
         cellType(cellType: ICell): this;
         getCellType(): ICell;
         setter(setter: any): this;
