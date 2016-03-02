@@ -378,7 +378,8 @@ var TSGrid;
         Cell.prototype.render = function () {
             this.$el.empty();
             var formatter = this.column.getFormatter();
-            var modelValue = this.model.get(this.column.getName());
+            var getter = this.column.getGetter();
+            var modelValue = getter ? getter(this.model) : this.model.get(this.column.getName());
             var value = formatter ? formatter(this.model) : modelValue;
             this.$el.html(value);
             this.$el.attr('width', this.column.getWidth());
@@ -445,7 +446,13 @@ var TSGrid;
             this.$el.blur();
         };
         Cell.prototype.clear = function () {
-            this.model.set(this.column.getName(), null);
+            var setter = this.column.getSetter();
+            if (setter) {
+                setter(this.model);
+            }
+            else {
+                this.model.set(this.column.getName(), null);
+            }
             this.render();
         };
         Cell.prototype.doneEditing = function (evt) {
