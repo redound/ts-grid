@@ -187,8 +187,8 @@ var TSGrid;
             this.collection.each(function (model) {
                 _this.rows.add(new _this.rowType(_this.columns, model));
             });
-            this.collection.events.on(TSCore.Data.Collection.Events.ADD, function (evt) { return _this.insertRows(evt); });
-            this.collection.events.on(TSCore.Data.Collection.Events.REMOVE, function (evt) { return _this.removeRows(evt); });
+            this.collection.events.on(TSCore.Data.CollectionEvents.ADD, function (evt) { return _this.insertRows(evt); });
+            this.collection.events.on(TSCore.Data.CollectionEvents.REMOVE, function (evt) { return _this.removeRows(evt); });
         };
         Body.prototype.setGrid = function (grid) {
             this._grid = grid;

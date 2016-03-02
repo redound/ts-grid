@@ -52,9 +52,9 @@ module TSGrid {
                 ));
             });
 
-            this.collection.events.on(TSCore.Data.Collection.Events.ADD, evt => this.insertRows(evt));
+            this.collection.events.on(TSCore.Data.CollectionEvents.ADD, evt => this.insertRows(evt));
 
-            this.collection.events.on(TSCore.Data.Collection.Events.REMOVE, evt => this.removeRows(evt));
+            this.collection.events.on(TSCore.Data.CollectionEvents.REMOVE, evt => this.removeRows(evt));
         }
 
         /**
