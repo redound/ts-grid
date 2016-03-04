@@ -41,5 +41,6 @@ module TSGrid {
         export const ERROR = "tsGrid:error";
         export const NEXT = "tsGrid:next";
         export const NAVIGATE = "tsGrid:navigate";
+        export const CLICK = "tsGrid:click";
     }
 }

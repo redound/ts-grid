@@ -3,68 +3,47 @@
 declare module TSGrid {
     enum CommandTypes {
         NONE = 0,
-        ARROW_UP = 1,
-        ARROW_DOWN = 2,
-        ARROW_LEFT = 3,
-        ARROW_RIGHT = 4,
+        UP = 1,
+        DOWN = 2,
+        LEFT = 3,
+        RIGHT = 4,
         TAB = 5,
         SHIFT_TAB = 6,
         ENTER = 7,
         BACKSPACE = 8,
-        SAVE = 9,
-        CANCEL = 10,
+        BLUR = 9,
+        ESC = 10,
     }
 }
 declare module TSGrid {
     class Command {
-        static ALLOWED_INPUT: number[];
-        commandType: CommandTypes;
-        event: any;
-        type: any;
-        altKey: any;
-        char: any;
-        charCode: any;
-        ctrlKey: boolean;
-        key: string;
-        keyCode: number;
-        local: string;
-        location: string;
-        metaKey: boolean;
-        repeat: boolean;
-        shiftKey: boolean;
-        which: number;
-        setType(type: CommandTypes): void;
-        setEvent(evt: any): void;
-        getEvent(): any;
-        blurred(): boolean;
-        submitted(): boolean;
-        clicked(): boolean;
-        arrowUp(): boolean;
-        arrowDown(): boolean;
-        arrowLeft(): boolean;
-        arrowRight(): boolean;
+        protected _type: CommandTypes;
+        type(type: CommandTypes): void;
+        fromEvent(evt: any): void;
+        blur(): boolean;
+        up(): boolean;
+        down(): boolean;
+        left(): boolean;
+        right(): boolean;
         shiftTab(): boolean;
         tab(): boolean;
-        moveUp(): boolean;
-        moveDown(): boolean;
-        moveLeft(): boolean;
-        moveRight(): boolean;
         enter(): boolean;
         backspace(): boolean;
-        cancel(): boolean;
-        navigate(): boolean;
-        navigateWhileEdit(): boolean;
-        input(): boolean;
-        passThru(): boolean;
+        esc(): boolean;
         static fromEvent(evt: any): Command;
         static fromType(type: CommandTypes): Command;
-        static fromAction(action: CellEditorAction): Command;
     }
 }
 declare module TSGrid {
+    interface GridPosition {
+        model: TSCore.Data.Model;
+        column: TSGrid.Column;
+    }
     class Body extends TSCore.App.UI.View {
         tagName: string;
         className: string;
+        activePosition: GridPosition;
+        activeCell: Cell;
         columns: TSCore.Data.List<Column>;
         rowType: IRow;
         rows: TSCore.Data.SortedList<Row>;
@@ -80,6 +59,10 @@ declare module TSGrid {
         removeRow(model: TSCore.Data.Model): this;
         render(): this;
         remove(): TSCore.App.UI.View;
+        getActiveCell(): Cell;
+        getCell(model: TSCore.Data.Model, column: TSGrid.Column): TSGrid.Cell;
+        moveToCell(evt: any): void;
+        protected activateCell(cell: TSGrid.Cell): void;
         moveToNextCell(evt: any): this;
     }
 }
@@ -88,32 +71,29 @@ declare module TSGrid {
         new (column: Column, model: TSCore.Data.Model): Cell;
     }
     class Cell extends TSCore.App.UI.View {
+        static CELL_INPUT: number[];
         tagName: string;
         editModeActive: boolean;
         currentEditor: CellEditor;
         viewEvents: {
             "click": string;
-            "focusout": string;
-            "focus": string;
-            "blur": string;
             "keypress": string;
             "keydown": string;
         };
         column: Column;
         model: TSCore.Data.Model;
+        activated: boolean;
         constructor(column: Column, model: TSCore.Data.Model);
         initialize(): void;
         render(): this;
         protected keypress(evt: any): void;
         protected keydown(evt: any): void;
-        protected click(): void;
+        protected click(event: any): void;
         protected blur(): void;
-        protected focusout(): void;
         activate(): void;
-        protected focus(): void;
+        isActivated(): boolean;
         deactivate(): void;
         clear(): void;
-        doneEditing(evt: any): void;
         enterEditMode(withModelValue?: any): void;
         renderError(model: TSCore.Data.Model, column: Column): void;
         exitEditMode(): void;
@@ -123,11 +103,6 @@ declare module TSGrid {
 declare module TSGrid {
     interface ICellEditor {
         new (column: Column, model: TSCore.Data.Model): CellEditor;
-    }
-    enum CellEditorAction {
-        ESC = 0,
-        BLUR = 1,
-        ENTER = 2,
     }
     class CellEditor extends TSCore.App.UI.View {
         protected column: Column;
@@ -145,8 +120,8 @@ declare module TSGrid {
         getInitialModelValue(): any;
         setModelValue(value: any): this;
         getModelValue(): any;
-        save(action: CellEditorAction, value: any): void;
-        cancel(action: CellEditorAction): void;
+        save(cmd: Command, value: any): void;
+        cancel(cmd: Command): void;
     }
 }
 declare module TSGrid {
@@ -292,5 +267,6 @@ declare module TSGrid {
         const ERROR: string;
         const NEXT: string;
         const NAVIGATE: string;
+        const CLICK: string;
     }
 }

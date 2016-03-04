@@ -1,13 +1,9 @@
+///<reference path="Command.ts"/>
+
 module TSGrid {
 
     export interface ICellEditor {
         new (column: Column, model: TSCore.Data.Model): CellEditor;
-    }
-
-    export enum CellEditorAction {
-        ESC,
-        BLUR,
-        ENTER
     }
 
     export class CellEditor extends TSCore.App.UI.View {
@@ -144,7 +140,7 @@ module TSGrid {
          * @param action Action on which the save action is based.
          * @param value The updated modelValue
          */
-        public save(action: CellEditorAction, value: any) {
+        public save(cmd: Command, value: any) {
 
             var model = this.model;
             var column = this.column;
@@ -155,7 +151,7 @@ module TSGrid {
             var editedEvent = {
                 model: model,
                 column: column,
-                command: Command.fromAction(action),
+                command: cmd,
             };
 
             grid.events.trigger(TSGridEvents.EDITED, editedEvent);
@@ -167,7 +163,7 @@ module TSGrid {
          *
          * @param action Action on which the cancel action is based.
          */
-        public cancel(action: CellEditorAction) {
+        public cancel(cmd: Command) {
 
             var model = this.model;
             var column = this.column;
@@ -176,7 +172,7 @@ module TSGrid {
             var editedEvent = {
                 model: model,
                 column: column,
-                command: Command.fromAction(action)
+                command: cmd
             };
 
             grid.events.trigger(TSGridEvents.EDITED, editedEvent);

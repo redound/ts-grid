@@ -3,11 +3,20 @@
 
 module TSGrid {
 
+    export interface GridPosition {
+        model: TSCore.Data.Model,
+        column: TSGrid.Column
+    }
+
     export class Body extends TSCore.App.UI.View {
 
         public tagName:string = 'div';
 
         public className:string = 'ts-grid-body';
+
+        public activePosition: GridPosition;
+
+        public activeCell: Cell;
 
         /**
          * A list with Column definitions
@@ -66,6 +75,7 @@ module TSGrid {
             this._grid = grid;
             grid.events.on(TSGrid.TSGridEvents.EDITED, this.moveToNextCell, this);
             grid.events.on(TSGrid.TSGridEvents.NAVIGATE, this.moveToNextCell, this);
+            grid.events.on(TSGrid.TSGridEvents.CLICK, this.moveToCell, this);
         }
 
         /**
@@ -199,6 +209,48 @@ module TSGrid {
             return super.remove();
         }
 
+        public getActiveCell() {
+
+            var model: TSCore.Data.Model = this.activePosition.model;
+            var column: TSGrid.Column = this.activePosition.column;
+
+            return this.getCell(model, column);
+        }
+
+        public getCell(model: TSCore.Data.Model, column: TSGrid.Column): TSGrid.Cell {
+
+            var row = this.rows.whereFirst({ modelId: model.getId() });
+            var i = this.rows.indexOf(row);
+            var j = this.columns.indexOf(column);
+
+            return this.rows.get(i).cells.get(j);
+        }
+
+        public moveToCell(evt) {
+
+            var model: TSCore.Data.Model = evt.params.model;
+            var column: TSGrid.Column = evt.params.column;
+            var cell = this.getCell(model, column);
+
+            this.activateCell(cell);
+        }
+
+        protected activateCell(cell: TSGrid.Cell) {
+
+            if (this.activeCell !== cell) {
+                if (this.activeCell) {
+                    this.activeCell.deactivate();
+                }
+                this.activeCell = cell;
+            }
+
+            if (cell.isActivated()) {
+                cell.enterEditMode();
+            } else {
+                cell.activate();
+            }
+        }
+
         /**
          * Move to next cell based on event
          * @param evt
@@ -210,7 +262,7 @@ module TSGrid {
             var grid = this.getGrid();
             var model = evt.params.model;
             var column = evt.params.column;
-            var command: Command = evt.params.command;
+            var cmd: Command = evt.params.command;
             var cell, renderable, editable, m, n;
 
             var row = this.rows.whereFirst({ modelId: model.id });
@@ -220,35 +272,25 @@ module TSGrid {
 
             if (j === -1) return this;
 
-            var currentCell = this.rows.get(i).cells.get(j);
+            if (cmd.esc()) {
 
-            if (command.navigate() || command.blurred()) {
+                if (this.activeCell.editModeActive) {
+                    this.activeCell.exitEditMode();
+                    this.activeCell.activate();
+                }
+
+            } else if (cmd.enter() || cmd.left() || cmd.right() || cmd.up() || cmd.down() || cmd.shiftTab() || cmd.tab()) {
                 var l = this.columns.length;
                 var maxOffset = l * this.collection.length;
 
-                if (command.blurred()) {
-
-                    currentCell.deactivate();
-                }
-                else if (command.moveUp() || command.moveDown()) {
-                    m = i + (command.moveUp() ? -1 : 1);
-
-                    var e = command.getEvent();
-
-                    if (e) {
-                        e.preventDefault();
-                    }
+                if (cmd.up() || cmd.down() || cmd.enter()) {
+                    m = i + (cmd.up() ? -1 : 1);
 
                     var row = this.rows.get(m);
                     if (row) {
                         cell = row.cells.get(j);
                         if (TSGrid.callByNeed(cell.column.getEditable(), cell.column, model)) {
-                            var editMode = currentCell.editModeActive;
-                            currentCell.deactivate();
-                            cell.activate();
-                            if (editMode) {
-                                cell.enterEditMode();
-                            }
+                            this.activateCell(cell);
                             grid.events.trigger(TSGridEvents.NEXT, {
                                 row: m,
                                 column: j,
@@ -264,15 +306,9 @@ module TSGrid {
                         });
                     }
                 }
-                else if (command.moveLeft() || command.moveRight()) {
+                else if (cmd.left() || cmd.right() || cmd.shiftTab || cmd.tab()) {
 
-                    var e = command.getEvent();
-
-                    if (e) {
-                        e.preventDefault();
-                    }
-
-                    var right = command.moveRight();
+                    var right = cmd.right() || cmd.tab();
                     for (var offset = i * l + j + (right ? 1 : -1);
                          offset >= 0 && offset < maxOffset;
                          right ? offset++ : offset--) {
@@ -283,12 +319,7 @@ module TSGrid {
                         editable = TSGrid.callByNeed(cell.column.getEditable(), cell.column, model);
 
                         if (renderable && editable) {
-                            var editMode = currentCell.editModeActive;
-                            currentCell.deactivate();
-                            cell.activate();
-                            if (editMode) {
-                                cell.enterEditMode();
-                            }
+                            this.activateCell(cell);
                             grid.events.trigger(TSGridEvents.NEXT, {
                                 row: m,
                                 column: n,

@@ -6,6 +6,8 @@ module TSGrid {
 
     export class Cell extends TSCore.App.UI.View {
 
+        public static CELL_INPUT = [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 167, 177, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 91, 92, 93, 94, 95, 96, 97, 98, 99, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90];
+
         public tagName: string = 'td';
 
         public editModeActive: boolean = false;
@@ -19,9 +21,6 @@ module TSGrid {
 
         public viewEvents = {
             "click": "click",
-            "focusout": "focusout",
-            "focus": "focus",
-            "blur": "blur",
             "keypress": "keypress",
             "keydown": "keydown"
         };
@@ -36,6 +35,8 @@ module TSGrid {
          * belongs to.
          */
         public model: TSCore.Data.Model;
+
+        public activated: boolean = false;
 
         public constructor(column: Column, model: TSCore.Data.Model) {
 
@@ -57,8 +58,6 @@ module TSGrid {
         public initialize() {
 
             super.initialize();
-
-            this.model.events.on(TSGridEvents.EDITED, this.doneEditing, this);
 
             if (TSGrid.callByNeed(this.column.getEditable(), this.column, this.model)) this.$el.addClass("editable");
             if (TSGrid.callByNeed(this.column.getRenderable(), this.column, this.model)) this.$el.addClass("renderable");
@@ -105,9 +104,9 @@ module TSGrid {
          */
         protected keypress(evt) {
 
-            var command = Command.fromEvent(evt);
+            var cellInput = Cell.CELL_INPUT.indexOf(evt.keyCode) !== -1;
 
-            if (this.column.getEditOnInput() && command.input()) {
+            if (this.column.getEditOnInput() && cellInput && !evt.metaKey && !evt.ctrlKey) {
 
                 var char = String.fromCharCode(evt.keyCode);
 
@@ -127,14 +126,14 @@ module TSGrid {
          */
         protected keydown(evt) {
 
-            var command = Command.fromEvent(evt);
+            var cmd = Command.fromEvent(evt);
 
-            if (command.enter()) {
+            if (cmd.enter()) {
 
                 this.enterEditMode();
             }
 
-            if (command.backspace()) {
+            if (cmd.backspace()) {
 
                 evt.preventDefault();
 
@@ -143,13 +142,15 @@ module TSGrid {
                 }
             }
 
-            if (command.navigate()) {
+            if (cmd.left() || cmd.right() || cmd.up() || cmd.down() || cmd.shiftTab() || cmd.tab()) {
+
+                evt.preventDefault();
 
                 var grid = this.column.getGrid();
                 grid.events.trigger(TSGridEvents.NAVIGATE, {
                     column: this.column,
                     model: this.model,
-                    command: command
+                    command: cmd
                 });
             }
         }
@@ -159,15 +160,15 @@ module TSGrid {
          *
          * When CLICKED while cell IS focused enter edit mode.
          */
-        protected click() {
+        protected click(event) {
 
-            if (this.$el.is(':focus')) {
+            var grid = this.column.getGrid();
 
-
-                this.enterEditMode();
-            } else {
-                this.activate();
-            }
+            grid.events.trigger(TSGridEvents.CLICK, {
+                column: this.column,
+                model: this.model,
+                event: event
+            });
         }
 
         /**
@@ -176,16 +177,8 @@ module TSGrid {
          */
         protected blur() {
 
-
             this.$el.removeClass('active');
             this.$el.removeAttr('tabindex');
-        }
-
-        protected focusout() {
-
-            if (this.editModeActive) {
-                this.exitEditMode();
-            }
         }
 
         /**
@@ -195,18 +188,25 @@ module TSGrid {
         public activate() {
 
             this.$el.attr('tabindex', 0);
+            this.$el.addClass('active');
             this.$el.focus();
+            this.activated = true;
         }
 
-        protected focus() {
-            this.$el.addClass('active');
+        public isActivated(): boolean {
+            return this.activated;
         }
 
         /**
-         * Alias for blur
+         * Deactivate cell
          */
         public deactivate() {
-            this.$el.blur();
+
+            if (this.editModeActive) {
+                this.exitEditMode();
+            }
+            this.blur();
+            this.activated = false;
         }
 
         /**
@@ -226,26 +226,6 @@ module TSGrid {
             }
 
             this.render();
-        }
-
-        /**
-         * TODO: try to simplify this method
-         * This method can be called as a callback for TSGridEvents.EDITED event.
-         * @param evt
-         */
-        public doneEditing(evt) {
-
-            var column = evt.params.column;
-            var command = evt.params.command;
-
-            if ((command.enter() || command.submitted() || command.cancel()) && (column == null || column.getId() == this.column.getId())) {
-
-                if (this.editModeActive) {
-                    this.exitEditMode();
-                }
-
-                this.activate();
-            }
         }
 
         /**
