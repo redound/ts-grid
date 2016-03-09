@@ -272,14 +272,15 @@ module TSGrid {
 
             if (j === -1) return this;
 
-            if (cmd.esc() || cmd.blur()) {
+            if (cmd.enter() || cmd.esc() || cmd.blur()) {
 
                 if (this.activeCell.editModeActive) {
                     this.activeCell.exitEditMode();
                     this.activeCell.activate();
                 }
+            }
 
-            } else if (cmd.enter() || cmd.left() || cmd.right() || cmd.up() || cmd.down() || cmd.shiftTab() || cmd.tab()) {
+            if (cmd.enter() || cmd.left() || cmd.right() || cmd.up() || cmd.down() || cmd.shiftTab() || cmd.tab()) {
                 var l = this.columns.length;
                 var maxOffset = l * this.collection.length;
 
@@ -299,6 +300,7 @@ module TSGrid {
                         }
                     }
                     else {
+
                         grid.events.trigger(TSGridEvents.NEXT, {
                             row: m,
                             column: j,

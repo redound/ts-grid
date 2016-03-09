@@ -253,6 +253,7 @@ module TSGrid {
                 var editorFactory = this.column.getEditor();
 
                 this.currentEditor = editorFactory(
+                    this,
                     this.column,
                     this.model
                 );

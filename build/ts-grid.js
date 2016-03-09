@@ -246,13 +246,13 @@ var TSGrid;
             var j = this.columns.indexOf(column);
             if (j === -1)
                 return this;
-            if (cmd.esc() || cmd.blur()) {
+            if (cmd.enter() || cmd.esc() || cmd.blur()) {
                 if (this.activeCell.editModeActive) {
                     this.activeCell.exitEditMode();
                     this.activeCell.activate();
                 }
             }
-            else if (cmd.enter() || cmd.left() || cmd.right() || cmd.up() || cmd.down() || cmd.shiftTab() || cmd.tab()) {
+            if (cmd.enter() || cmd.left() || cmd.right() || cmd.up() || cmd.down() || cmd.shiftTab() || cmd.tab()) {
                 var l = this.columns.length;
                 var maxOffset = l * this.collection.length;
                 if (cmd.up() || cmd.down() || cmd.enter()) {
@@ -428,7 +428,7 @@ var TSGrid;
             var editable = TSGrid.callByNeed(this.column.getEditable(), this.column, this.model);
             if (editable) {
                 var editorFactory = this.column.getEditor();
-                this.currentEditor = editorFactory(this.column, this.model);
+                this.currentEditor = editorFactory(this, this.column, this.model);
                 this.model.events.trigger(TSGrid.TSGridEvents.EDIT, {
                     model: this.model,
                     column: this.column,
