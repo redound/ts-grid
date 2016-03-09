@@ -272,7 +272,7 @@ module TSGrid {
 
             if (j === -1) return this;
 
-            if (cmd.esc()) {
+            if (cmd.esc() || cmd.blur()) {
 
                 if (this.activeCell.editModeActive) {
                     this.activeCell.exitEditMode();
