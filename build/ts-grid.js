@@ -365,8 +365,10 @@ var TSGrid;
             }
             if (cmd.backspace()) {
                 evt.preventDefault();
+                evt.stopPropagation();
                 if (this.column.getAllowClear()) {
                     this.clear();
+                    this.activate();
                 }
             }
             if (cmd.left() || cmd.right() || cmd.up() || cmd.down() || cmd.shiftTab() || cmd.tab()) {

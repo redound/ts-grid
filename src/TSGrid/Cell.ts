@@ -135,10 +135,13 @@ module TSGrid {
 
             if (cmd.backspace()) {
 
+                // Prevent history back
                 evt.preventDefault();
+                evt.stopPropagation();
 
                 if (this.column.getAllowClear()) {
                     this.clear();
+                    this.activate();
                 }
             }
 
