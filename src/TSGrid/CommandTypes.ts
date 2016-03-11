@@ -10,6 +10,7 @@ module TSGrid {
         SHIFT_TAB,
         ENTER,
         BACKSPACE,
+        DELETE,
         BLUR,
         ESC
     }

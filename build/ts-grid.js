@@ -10,13 +10,15 @@ var TSGrid;
         CommandTypes[CommandTypes["SHIFT_TAB"] = 6] = "SHIFT_TAB";
         CommandTypes[CommandTypes["ENTER"] = 7] = "ENTER";
         CommandTypes[CommandTypes["BACKSPACE"] = 8] = "BACKSPACE";
-        CommandTypes[CommandTypes["BLUR"] = 9] = "BLUR";
-        CommandTypes[CommandTypes["ESC"] = 10] = "ESC";
+        CommandTypes[CommandTypes["DELETE"] = 9] = "DELETE";
+        CommandTypes[CommandTypes["BLUR"] = 10] = "BLUR";
+        CommandTypes[CommandTypes["ESC"] = 11] = "ESC";
     })(TSGrid.CommandTypes || (TSGrid.CommandTypes = {}));
     var CommandTypes = TSGrid.CommandTypes;
 })(TSGrid || (TSGrid = {}));
 var TSGrid;
 (function (TSGrid) {
+    var KeyCodes = TSCore.App.UI.KeyCodes;
     var Command = (function () {
         function Command() {
         }
@@ -28,31 +30,34 @@ var TSGrid;
                 case (evt.type === 'blur'):
                     this._type = TSGrid.CommandTypes.BLUR;
                     break;
-                case (evt.keyCode === 38):
+                case (evt.keyCode === KeyCodes.UP):
                     this._type = TSGrid.CommandTypes.UP;
                     break;
-                case (evt.keyCode === 40):
+                case (evt.keyCode === KeyCodes.DOWN):
                     this._type = TSGrid.CommandTypes.DOWN;
                     break;
-                case (evt.shiftKey && evt.keyCode === 9):
+                case (evt.shiftKey && evt.keyCode === KeyCodes.TAB):
                     this._type = TSGrid.CommandTypes.SHIFT_TAB;
                     break;
-                case (evt.keyCode === 37):
+                case (evt.keyCode === KeyCodes.LEFT):
                     this._type = TSGrid.CommandTypes.LEFT;
                     break;
-                case (!evt.shiftKey && evt.keyCode === 9):
+                case (!evt.shiftKey && evt.keyCode === KeyCodes.TAB):
                     this._type = TSGrid.CommandTypes.TAB;
                     break;
-                case (evt.keyCode === 39):
+                case (evt.keyCode === KeyCodes.RIGHT):
                     this._type = TSGrid.CommandTypes.RIGHT;
                     break;
-                case (!evt.shiftKey && evt.keyCode === 13):
+                case (!evt.shiftKey && evt.keyCode === KeyCodes.ENTER):
                     this._type = TSGrid.CommandTypes.ENTER;
                     break;
-                case (evt.keyCode === 8):
+                case (evt.keyCode === KeyCodes.BACKSPACE):
                     this._type = TSGrid.CommandTypes.BACKSPACE;
                     break;
-                case (evt.keyCode === 27):
+                case (evt.keyCode === KeyCodes.DELETE):
+                    this._type = TSGrid.CommandTypes.DELETE;
+                    break;
+                case (evt.keyCode === KeyCodes.ESCAPE):
                     this._type = TSGrid.CommandTypes.ESC;
                     break;
                 default:
@@ -86,6 +91,9 @@ var TSGrid;
         };
         Command.prototype.backspace = function () {
             return this._type === TSGrid.CommandTypes.BACKSPACE;
+        };
+        Command.prototype.delete = function () {
+            return this._type === TSGrid.CommandTypes.DELETE;
         };
         Command.prototype.esc = function () {
             return this._type === TSGrid.CommandTypes.ESC;
@@ -400,7 +408,7 @@ var TSGrid;
             if (cmd.enter()) {
                 this.enterEditMode();
             }
-            if (cmd.backspace()) {
+            if (cmd.backspace() || cmd.delete()) {
                 evt.preventDefault();
                 evt.stopPropagation();
                 if (this.column.getAllowClear()) {

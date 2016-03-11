@@ -2,6 +2,8 @@
 
 module TSGrid {
 
+    import KeyCodes = TSCore.App.UI.KeyCodes;
+
     export class Command {
 
         protected _type:CommandTypes;
@@ -17,39 +19,43 @@ module TSGrid {
                 case (evt.type === 'blur'):
                     this._type = CommandTypes.BLUR;
                     break;
-                case (evt.keyCode === 38):
+                case (evt.keyCode === KeyCodes.UP):
                     this._type = CommandTypes.UP;
                     break;
 
-                case (evt.keyCode === 40):
+                case (evt.keyCode === KeyCodes.DOWN):
                     this._type = CommandTypes.DOWN;
                     break;
 
-                case (evt.shiftKey && evt.keyCode === 9):
+                case (evt.shiftKey && evt.keyCode === KeyCodes.TAB):
                     this._type = CommandTypes.SHIFT_TAB;
                     break;
 
-                case (evt.keyCode === 37):
+                case (evt.keyCode === KeyCodes.LEFT):
                     this._type = CommandTypes.LEFT;
                     break;
 
-                case (!evt.shiftKey && evt.keyCode === 9):
+                case (!evt.shiftKey && evt.keyCode === KeyCodes.TAB):
                     this._type = CommandTypes.TAB;
                     break;
 
-                case (evt.keyCode === 39):
+                case (evt.keyCode === KeyCodes.RIGHT):
                     this._type = CommandTypes.RIGHT;
                     break;
 
-                case (!evt.shiftKey && evt.keyCode === 13):
+                case (!evt.shiftKey && evt.keyCode === KeyCodes.ENTER):
                     this._type = CommandTypes.ENTER;
                     break;
 
-                case (evt.keyCode === 8):
+                case (evt.keyCode === KeyCodes.BACKSPACE):
                     this._type = CommandTypes.BACKSPACE;
                     break;
 
-                case (evt.keyCode === 27):
+                case (evt.keyCode === KeyCodes.DELETE):
+                    this._type = CommandTypes.DELETE;
+                    break;
+
+                case (evt.keyCode === KeyCodes.ESCAPE):
                     this._type = CommandTypes.ESC;
                     break;
 
@@ -93,6 +99,10 @@ module TSGrid {
 
         public backspace() {
             return this._type === CommandTypes.BACKSPACE;
+        }
+
+        public delete() {
+            return this._type === CommandTypes.DELETE;
         }
 
         public esc() {

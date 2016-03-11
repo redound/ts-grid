@@ -11,8 +11,9 @@ declare module TSGrid {
         SHIFT_TAB = 6,
         ENTER = 7,
         BACKSPACE = 8,
-        BLUR = 9,
-        ESC = 10,
+        DELETE = 9,
+        BLUR = 10,
+        ESC = 11,
     }
 }
 declare module TSGrid {
@@ -29,6 +30,7 @@ declare module TSGrid {
         tab(): boolean;
         enter(): boolean;
         backspace(): boolean;
+        delete(): boolean;
         esc(): boolean;
         static fromEvent(evt: any): Command;
         static fromType(type: CommandTypes): Command;

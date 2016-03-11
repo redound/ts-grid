@@ -135,7 +135,7 @@ module TSGrid {
                 this.enterEditMode();
             }
 
-            if (cmd.backspace()) {
+            if (cmd.backspace() || cmd.delete()) {
 
                 // Prevent history back
                 evt.preventDefault();
