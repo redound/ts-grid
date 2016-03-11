@@ -46,17 +46,21 @@ declare module TSGrid {
         activeCell: Cell;
         columns: TSCore.Data.List<Column>;
         rowType: IRow;
-        rows: TSCore.Data.SortedList<Row>;
+        rows: TSCore.Data.List<Row>;
+        models: TSCore.Data.SortedList<TSCore.Data.Model>;
         collection: TSCore.Data.ModelCollection<TSCore.Data.Model>;
         _grid: Grid;
         constructor(columns: TSCore.Data.List<Column>, collection: TSCore.Data.ModelCollection<TSCore.Data.Model>, rowType?: IRow);
         initialize(): void;
+        protected addModels(evt: any): void;
+        protected removeModels(evt: any): void;
         setGrid(grid: Grid): void;
         getGrid(): Grid;
         insertRow(model: TSCore.Data.Model, index?: number, items?: TSCore.Data.ModelCollection<TSCore.Data.Model>): void;
         insertRows(evt: any): void;
         removeRows(evt: any): void;
         removeRow(model: TSCore.Data.Model): this;
+        refresh(evt: any): void;
         render(): this;
         remove(): TSCore.App.UI.View;
         getActiveCell(): Cell;
@@ -80,6 +84,7 @@ declare module TSGrid {
             "keypress": string;
             "keydown": string;
         };
+        events: TSCore.Events.EventEmitter;
         column: Column;
         model: TSCore.Data.Model;
         activated: boolean;
@@ -134,6 +139,7 @@ declare module TSGrid {
         protected _renderable: boolean;
         protected _editOnInput: boolean;
         protected _editable: boolean;
+        protected _sortable: boolean;
         protected _editor: any;
         protected _onClear: any;
         protected _allowClear: boolean;
@@ -157,11 +163,13 @@ declare module TSGrid {
         getLabel(): string;
         renderable(renderable: boolean): this;
         getRenderable(): boolean;
-        editable(editable: boolean): this;
+        editable(editable?: boolean): this;
         getEditable(): boolean;
+        sortable(sortable?: boolean): this;
+        getSortable(): boolean;
         editOnInput(editOnInput?: boolean): this;
         getEditOnInput(): boolean;
-        getHeaderType(): ICell;
+        getHeaderType(): any;
         editor(editor: any): this;
         getEditor(): any;
         allowClear(allowClear?: boolean): this;
@@ -181,6 +189,7 @@ declare module TSGrid {
     }
 }
 declare module TSGrid {
+    import SortedListDirection = TSCore.Data.SortedListDirection;
     class Grid extends TSCore.App.UI.View {
         tagName: string;
         className: string;
@@ -191,6 +200,8 @@ declare module TSGrid {
         events: TSCore.Events.EventEmitter;
         constructor(header: Header, body: Body, columns: TSCore.Data.List<Column>);
         initialize(): void;
+        sort(sortPredicate: any, sortDirection: SortedListDirection): void;
+        protected afterSort(sortPredicate: any, sortDirection: SortedListDirection): void;
         setHeader(header: Header): this;
         getHeader(): Header;
         setBody(body: Body): this;
@@ -202,6 +213,9 @@ declare module TSGrid {
         insertRow(): Grid;
         removeRow(): Grid;
         render(): this;
+        protected listenHeaderCells(): void;
+        protected headerCellOnClick(e: any): void;
+        protected sortName(name: string): void;
         remove(): TSCore.App.UI.View;
     }
 }
@@ -225,10 +239,17 @@ declare module TSGrid {
         viewEvents: any;
         row: HeaderRow;
         column: Column;
-        constructor(column: Column);
-        initialize(): void;
+        events: TSCore.Events.EventEmitter;
+        protected sortDirection: TSCore.Data.SortedListDirection;
+        constructor(column: Column, model: TSCore.Data.Model);
         click(): void;
+        setSortDirection(direction: TSCore.Data.SortedListDirection): void;
         render(): this;
+    }
+}
+declare module TSGrid {
+    module HeaderCellEvents {
+        const CLICK: string;
     }
 }
 declare module TSGrid {
@@ -250,8 +271,14 @@ declare module TSGrid {
     }
 }
 declare module TSGrid {
-    class HeaderRow extends Row {
-        makeCell(column: Column): Cell;
+    class HeaderRow extends TSCore.App.UI.View {
+        tagName: string;
+        columns: TSCore.Data.List<Column>;
+        cells: TSCore.Data.List<TSGrid.HeaderCell>;
+        constructor(columns: TSCore.Data.List<Column>);
+        initialize(): void;
+        makeCell(column: Column): any;
+        render(): this;
     }
 }
 declare module TSGrid {
@@ -260,6 +287,7 @@ declare module TSGrid {
     function callByNeed(...arg: any[]): any;
     module TSGridEvents {
         const RENDERED: string;
+        const REFRESH: string;
         const SORT: string;
         const EDIT: string;
         const EDITING: string;

@@ -25,10 +25,7 @@ module TSGrid {
 
             super.initialize();
 
-            this.row = new HeaderRow(
-                this.columns,
-                null
-            );
+            this.row = new HeaderRow(this.columns);
         }
 
         public setGrid(grid: Grid): this {

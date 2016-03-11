@@ -1,5 +1,6 @@
 module TSGrid {
 
+    import SortedListDirection = TSCore.Data.SortedListDirection;
     export class Grid extends TSCore.App.UI.View {
 
         public tagName: string = 'div';
@@ -21,7 +22,9 @@ module TSGrid {
             super();
 
             this.setHeader(header);
+
             this.setBody(body);
+
             this.setColumns(columns);
 
             this.initialize();
@@ -30,6 +33,33 @@ module TSGrid {
         public initialize() {
 
             super.initialize();
+
+            console.log('Initialize grid');
+        }
+
+        public sort(sortPredicate: any, sortDirection: SortedListDirection) {
+
+            this._body.models.sort(sortPredicate, sortDirection);
+            this.afterSort(sortPredicate, sortDirection);
+        }
+
+        protected afterSort(sortPredicate: any, sortDirection: SortedListDirection) {
+
+            if (!this._header) {
+                return;
+            }
+
+            var headerRow = this._header.row;
+
+            headerRow.cells.each(cell => {
+
+                if (cell.column.getName() === sortPredicate) {
+                    console.log(cell.column.getName() + ' was clicked');
+                    cell.setSortDirection(sortDirection);
+                } else {
+                    cell.setSortDirection(null);
+                }
+            });
         }
 
         public setHeader(header: Header): this {
@@ -106,6 +136,7 @@ module TSGrid {
 
             if (this._header) {
                 this.$el.append(this._header.render().$el);
+                this.listenHeaderCells();
             }
 
             this.$el.append(this._body.render().$el);
@@ -115,6 +146,53 @@ module TSGrid {
             this.events.trigger(TSGridEvents.RENDERED);
 
             return this;
+        }
+
+        protected listenHeaderCells() {
+
+            var headerRow = this._header.row;
+
+            headerRow.cells.each(cell => {
+                cell.events.on(HeaderCellEvents.CLICK, e => this.headerCellOnClick(e));
+            });
+        }
+
+        protected headerCellOnClick(e) {
+
+            var headerRow = this._header.row;
+            var headerCell: TSGrid.HeaderCell = e.params.headerCell;
+
+            if (headerCell.column.getSortable()) {
+                this.sortName(headerCell.column.getName());
+            }
+        }
+
+        protected sortName(name: string) {
+
+            var sortPredicate = this._body.models.getSortPredicate();
+            var sortDirection = this._body.models.getSortDirection();
+
+            var direction = sortDirection === TSCore.Data.SortedListDirection.ASCENDING ? TSCore.Data.SortedListDirection.DESCENDING : TSCore.Data.SortedListDirection.ASCENDING;
+
+            if (name === sortPredicate) {
+
+                switch(sortDirection) {
+                    case SortedListDirection.ASCENDING:
+                        direction = SortedListDirection.DESCENDING;
+                        break;
+                    case SortedListDirection.DESCENDING:
+                        direction = null;
+                        break;
+                    default:
+                        direction = SortedListDirection.ASCENDING;
+                        break;
+                }
+
+            } else {
+                direction = TSCore.Data.SortedListDirection.ASCENDING;
+            }
+
+            this.sort(name, direction);
         }
 
         /**

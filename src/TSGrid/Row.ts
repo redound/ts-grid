@@ -21,7 +21,9 @@ module TSGrid {
             super();
 
             this.columns = columns;
+
             this.setModel(model);
+
             this.cells = new TSCore.Data.List<Cell>();
 
             this.initialize();

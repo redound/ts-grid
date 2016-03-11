@@ -25,6 +25,8 @@ module TSGrid {
             "keydown": "keydown"
         };
 
+        public events: TSCore.Events.EventEmitter = new TSCore.Events.EventEmitter();
+
         /**
          * Column cell belongs to.
          */

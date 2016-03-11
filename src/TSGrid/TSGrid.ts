@@ -34,6 +34,7 @@ module TSGrid {
     export module TSGridEvents {
 
         export const RENDERED = "tsGrid:rendered";
+        export const REFRESH = "tsGrid:refresh";
         export const SORT = "tsGrid:sort";
         export const EDIT = "tsGrid:edit";
         export const EDITING = "tsGrid:editing";

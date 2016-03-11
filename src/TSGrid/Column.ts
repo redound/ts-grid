@@ -20,6 +20,8 @@ module TSGrid {
 
         protected _editable: boolean = false;
 
+        protected _sortable: boolean = false;
+
         protected _editor: any;
 
         protected _onClear : any;
@@ -39,6 +41,7 @@ module TSGrid {
         protected _className: string;
 
         public constructor() {
+
             this._uniqId = parseInt(<any>_.uniqueId());
         }
 
@@ -99,13 +102,22 @@ module TSGrid {
             return this._renderable;
         }
 
-        public editable(editable: boolean): this {
+        public editable(editable: boolean = true): this {
             this._editable = editable;
             return this;
         }
 
         public getEditable(): boolean {
             return this._editable;
+        }
+
+        public sortable(sortable: boolean = true): this {
+            this._sortable = sortable;
+            return this;
+        }
+
+        public getSortable(): boolean {
+            return this._sortable;
         }
 
         public editOnInput(editOnInput: boolean = true): this {
@@ -117,8 +129,8 @@ module TSGrid {
             return this._editOnInput
         }
 
-        public getHeaderType(): ICell {
-            return TSGrid.resolveNameToClass<ICell>('header-cell');
+        public getHeaderType() {
+            return TSGrid.resolveNameToClass<any>('header-cell');
         }
 
         public editor(editor: any): this {

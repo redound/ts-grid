@@ -126,12 +126,34 @@ var TSGrid;
         Body.prototype.initialize = function () {
             var _this = this;
             _super.prototype.initialize.call(this);
-            this.rows = new TSCore.Data.SortedList([], function () { });
-            this.collection.each(function (model) {
+            this.rows = new TSCore.Data.List();
+            var models = this.collection.all();
+            this.models = new TSCore.Data.SortedList(models, 'title');
+            this.models.resort();
+            this.models.each(function (model) {
                 _this.rows.add(new _this.rowType(_this.columns, model));
             });
-            this.collection.events.on(TSCore.Data.CollectionEvents.ADD, function (evt) { return _this.insertRows(evt); });
-            this.collection.events.on(TSCore.Data.CollectionEvents.REMOVE, function (evt) { return _this.removeRows(evt); });
+            this.collection.events.on(TSCore.Data.CollectionEvents.ADD, function (evt) { return _this.addModels(evt); });
+            this.collection.events.on(TSCore.Data.CollectionEvents.REMOVE, function (evt) { return _this.removeModels(evt); });
+            this.models.events.on(TSCore.Data.SortedListEvents.ADD, function (evt) { return _this.insertRows(evt); });
+            this.models.events.on(TSCore.Data.SortedListEvents.REMOVE, function (evt) { return _this.removeRows(evt); });
+            this.models.events.on(TSCore.Data.SortedListEvents.SORT, function (evt) { return _this.refresh(evt); });
+        };
+        Body.prototype.addModels = function (evt) {
+            var _this = this;
+            var operations = evt.params.operations;
+            _.each(operations, function (operation) {
+                console.log("add item '" + operation.item.get('title') + "' from models, collectionIndex: '" + operation.index + "', modelsIndex: '" + _this.models.indexOf(operation.item) + "'");
+                _this.models.add(operation.item);
+            });
+        };
+        Body.prototype.removeModels = function (evt) {
+            var _this = this;
+            var operations = evt.params.operations;
+            _.each(operations, function (operation) {
+                console.log("remove item '" + operation.item.get('title') + "' from models, collectionIndex: '" + operation.index + "', modelsIndex: '" + _this.models.indexOf(operation.item) + "'");
+                _this.models.remove(operation.item);
+            });
         };
         Body.prototype.setGrid = function (grid) {
             this._grid = grid;
@@ -183,6 +205,20 @@ var TSGrid;
         Body.prototype.removeRow = function (model) {
             this.collection.remove(model);
             return this;
+        };
+        Body.prototype.refresh = function (evt) {
+            var _this = this;
+            var grid = this.getGrid();
+            this.rows.each(function (row) {
+                row.remove();
+            });
+            this.rows = new TSCore.Data.List();
+            this.models.each(function (model) {
+                var row = new _this.rowType(_this.columns, model);
+                _this.rows.add(row);
+            });
+            this.render();
+            grid.events.trigger(TSGrid.TSGridEvents.REFRESH, { body: this });
         };
         Body.prototype.render = function () {
             var grid = this.getGrid();
@@ -323,6 +359,7 @@ var TSGrid;
                 "keypress": "keypress",
                 "keydown": "keydown"
             };
+            this.events = new TSCore.Events.EventEmitter();
             this.activated = false;
             this.column = column;
             this.model = model;
@@ -576,6 +613,7 @@ var TSGrid;
             this._renderable = true;
             this._editOnInput = false;
             this._editable = false;
+            this._sortable = false;
             this._allowClear = false;
             this._cellType = TSGrid.Cell;
             this._uniqId = parseInt(_.uniqueId());
@@ -625,11 +663,20 @@ var TSGrid;
             return this._renderable;
         };
         Column.prototype.editable = function (editable) {
+            if (editable === void 0) { editable = true; }
             this._editable = editable;
             return this;
         };
         Column.prototype.getEditable = function () {
             return this._editable;
+        };
+        Column.prototype.sortable = function (sortable) {
+            if (sortable === void 0) { sortable = true; }
+            this._sortable = sortable;
+            return this;
+        };
+        Column.prototype.getSortable = function () {
+            return this._sortable;
         };
         Column.prototype.editOnInput = function (editOnInput) {
             if (editOnInput === void 0) { editOnInput = true; }
@@ -705,6 +752,7 @@ var TSGrid;
 })(TSGrid || (TSGrid = {}));
 var TSGrid;
 (function (TSGrid) {
+    var SortedListDirection = TSCore.Data.SortedListDirection;
     var Grid = (function (_super) {
         __extends(Grid, _super);
         function Grid(header, body, columns) {
@@ -719,6 +767,26 @@ var TSGrid;
         }
         Grid.prototype.initialize = function () {
             _super.prototype.initialize.call(this);
+            console.log('Initialize grid');
+        };
+        Grid.prototype.sort = function (sortPredicate, sortDirection) {
+            this._body.models.sort(sortPredicate, sortDirection);
+            this.afterSort(sortPredicate, sortDirection);
+        };
+        Grid.prototype.afterSort = function (sortPredicate, sortDirection) {
+            if (!this._header) {
+                return;
+            }
+            var headerRow = this._header.row;
+            headerRow.cells.each(function (cell) {
+                if (cell.column.getName() === sortPredicate) {
+                    console.log(cell.column.getName() + ' was clicked');
+                    cell.setSortDirection(sortDirection);
+                }
+                else {
+                    cell.setSortDirection(null);
+                }
+            });
         };
         Grid.prototype.setHeader = function (header) {
             header.setGrid(this);
@@ -768,11 +836,48 @@ var TSGrid;
             this.$el.empty();
             if (this._header) {
                 this.$el.append(this._header.render().$el);
+                this.listenHeaderCells();
             }
             this.$el.append(this._body.render().$el);
             this.delegateEvents();
             this.events.trigger(TSGrid.TSGridEvents.RENDERED);
             return this;
+        };
+        Grid.prototype.listenHeaderCells = function () {
+            var _this = this;
+            var headerRow = this._header.row;
+            headerRow.cells.each(function (cell) {
+                cell.events.on(TSGrid.HeaderCellEvents.CLICK, function (e) { return _this.headerCellOnClick(e); });
+            });
+        };
+        Grid.prototype.headerCellOnClick = function (e) {
+            var headerRow = this._header.row;
+            var headerCell = e.params.headerCell;
+            if (headerCell.column.getSortable()) {
+                this.sortName(headerCell.column.getName());
+            }
+        };
+        Grid.prototype.sortName = function (name) {
+            var sortPredicate = this._body.models.getSortPredicate();
+            var sortDirection = this._body.models.getSortDirection();
+            var direction = sortDirection === TSCore.Data.SortedListDirection.ASCENDING ? TSCore.Data.SortedListDirection.DESCENDING : TSCore.Data.SortedListDirection.ASCENDING;
+            if (name === sortPredicate) {
+                switch (sortDirection) {
+                    case SortedListDirection.ASCENDING:
+                        direction = SortedListDirection.DESCENDING;
+                        break;
+                    case SortedListDirection.DESCENDING:
+                        direction = null;
+                        break;
+                    default:
+                        direction = SortedListDirection.ASCENDING;
+                        break;
+                }
+            }
+            else {
+                direction = TSCore.Data.SortedListDirection.ASCENDING;
+            }
+            this.sort(name, direction);
         };
         Grid.prototype.remove = function () {
             this._header && this._header.remove.apply(this._header, arguments);
@@ -796,7 +901,7 @@ var TSGrid;
         }
         Header.prototype.initialize = function () {
             _super.prototype.initialize.call(this);
-            this.row = new TSGrid.HeaderRow(this.columns, null);
+            this.row = new TSGrid.HeaderRow(this.columns);
         };
         Header.prototype.setGrid = function (grid) {
             this._grid = grid;
@@ -824,25 +929,48 @@ var TSGrid;
 (function (TSGrid) {
     var HeaderCell = (function (_super) {
         __extends(HeaderCell, _super);
-        function HeaderCell(column) {
+        function HeaderCell(column, model) {
             _super.call(this);
             this.tagName = 'th';
             this.viewEvents = {
                 "click a": "click"
             };
+            this.events = new TSCore.Events.EventEmitter();
+            this.sortDirection = null;
             this.column = column;
             this.initialize();
         }
-        HeaderCell.prototype.initialize = function () {
-            _super.prototype.initialize.call(this);
-        };
         HeaderCell.prototype.click = function () {
+            this.events.trigger(TSGrid.HeaderCellEvents.CLICK, { headerCell: this });
+        };
+        HeaderCell.prototype.setSortDirection = function (direction) {
+            if (this.sortDirection !== direction) {
+                this.sortDirection = direction;
+                this.render();
+            }
         };
         HeaderCell.prototype.render = function () {
             this.$el.empty();
-            var label = document.createTextNode(this.column.getLabel());
-            this.$el.append(label);
+            var $label;
+            if (this.column.getSortable()) {
+                $label = $('<a href="javascript:void(0)">' + this.column.getLabel() + '</a>');
+            }
+            else {
+                $label = document.createTextNode(this.column.getLabel());
+            }
+            this.$el.removeClass('asc');
+            this.$el.removeClass('desc');
+            if (this.sortDirection === TSCore.Data.SortedListDirection.ASCENDING) {
+                this.$el.addClass('asc');
+            }
+            if (this.sortDirection === TSCore.Data.SortedListDirection.DESCENDING) {
+                this.$el.addClass('desc');
+            }
+            this.$el.append($label);
             this.$el.addClass(this.column.getClassName());
+            if (this.column.getSortable()) {
+                this.$el.addClass('sortable');
+            }
             this.$el.attr('width', this.column.getWidth());
             this.delegateEvents();
             return this;
@@ -850,6 +978,13 @@ var TSGrid;
         return HeaderCell;
     })(TSCore.App.UI.View);
     TSGrid.HeaderCell = HeaderCell;
+})(TSGrid || (TSGrid = {}));
+var TSGrid;
+(function (TSGrid) {
+    var HeaderCellEvents;
+    (function (HeaderCellEvents) {
+        HeaderCellEvents.CLICK = 'click';
+    })(HeaderCellEvents = TSGrid.HeaderCellEvents || (TSGrid.HeaderCellEvents = {}));
 })(TSGrid || (TSGrid = {}));
 var TSGrid;
 (function (TSGrid) {
@@ -901,15 +1036,36 @@ var TSGrid;
 (function (TSGrid) {
     var HeaderRow = (function (_super) {
         __extends(HeaderRow, _super);
-        function HeaderRow() {
-            _super.apply(this, arguments);
+        function HeaderRow(columns) {
+            _super.call(this);
+            this.tagName = 'tr';
+            this.columns = columns;
+            this.cells = new TSCore.Data.List();
+            this.initialize();
         }
+        HeaderRow.prototype.initialize = function () {
+            var _this = this;
+            _super.prototype.initialize.call(this);
+            this.columns.each(function (column) {
+                _this.cells.add(_this.makeCell(column));
+            });
+        };
         HeaderRow.prototype.makeCell = function (column) {
             var headerCell = column.getHeaderType();
-            return new headerCell(column, this.model);
+            return new headerCell(column);
+        };
+        HeaderRow.prototype.render = function () {
+            this.$el.empty();
+            var fragment = document.createDocumentFragment();
+            this.cells.each(function (cell) {
+                fragment.appendChild(cell.render().el);
+            });
+            this.el.appendChild(fragment);
+            this.delegateEvents();
+            return this;
         };
         return HeaderRow;
-    })(TSGrid.Row);
+    })(TSCore.App.UI.View);
     TSGrid.HeaderRow = HeaderRow;
 })(TSGrid || (TSGrid = {}));
 var TSGrid;
@@ -946,6 +1102,7 @@ var TSGrid;
     var TSGridEvents;
     (function (TSGridEvents) {
         TSGridEvents.RENDERED = "tsGrid:rendered";
+        TSGridEvents.REFRESH = "tsGrid:refresh";
         TSGridEvents.SORT = "tsGrid:sort";
         TSGridEvents.EDIT = "tsGrid:edit";
         TSGridEvents.EDITING = "tsGrid:editing";
