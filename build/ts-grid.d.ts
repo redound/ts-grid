@@ -38,8 +38,11 @@ declare module TSGrid {
 }
 declare module TSGrid {
     interface GridPosition {
-        model: TSCore.Data.Model;
+        model: TSCore.App.Data.Model.ActiveModel;
         column: TSGrid.Column;
+    }
+    interface IBodyDelegate {
+        bodyModelForEmptyRow(): TSCore.App.Data.Model.ActiveModel;
     }
     class Body extends TSCore.App.UI.View {
         tagName: string;
@@ -49,24 +52,27 @@ declare module TSGrid {
         columns: TSCore.Data.List<Column>;
         rowType: IRow;
         rows: TSCore.Data.List<Row>;
-        models: TSCore.Data.SortedList<TSCore.Data.Model>;
-        collection: TSCore.Data.ModelCollection<TSCore.Data.Model>;
+        models: TSCore.Data.SortedList<TSCore.App.Data.Model.ActiveModel>;
+        collection: TSCore.Data.ModelCollection<TSCore.App.Data.Model.ActiveModel>;
+        emptyRow: Row;
         _grid: Grid;
-        constructor(columns: TSCore.Data.List<Column>, collection: TSCore.Data.ModelCollection<TSCore.Data.Model>, rowType?: IRow);
+        protected _delegate: IBodyDelegate;
+        constructor(delegate: IBodyDelegate, columns: TSCore.Data.List<Column>, collection: TSCore.Data.ModelCollection<TSCore.App.Data.Model.ActiveModel>, rowType?: IRow);
         initialize(): void;
         protected addModels(evt: any): void;
         protected removeModels(evt: any): void;
         setGrid(grid: Grid): void;
         getGrid(): Grid;
-        insertRow(model: TSCore.Data.Model, index?: number, items?: TSCore.Data.ModelCollection<TSCore.Data.Model>): void;
+        protected prependEmptyRow(): void;
+        insertRow(model: TSCore.App.Data.Model.ActiveModel, index?: number, items?: TSCore.Data.ModelCollection<TSCore.App.Data.Model.ActiveModel>): void;
         insertRows(evt: any): void;
         removeRows(evt: any): void;
-        removeRow(model: TSCore.Data.Model): this;
+        removeRow(model: TSCore.App.Data.Model.ActiveModel): this;
         refresh(evt: any): void;
         render(): this;
-        remove(): TSCore.App.UI.View;
+        remove(): this;
         getActiveCell(): Cell;
-        getCell(model: TSCore.Data.Model, column: TSGrid.Column): TSGrid.Cell;
+        getCell(model: TSCore.App.Data.Model.ActiveModel, column: TSGrid.Column): TSGrid.Cell;
         moveToCell(evt: any): void;
         protected activateCell(cell: TSGrid.Cell): void;
         moveToNextCell(evt: any): this;
@@ -74,7 +80,7 @@ declare module TSGrid {
 }
 declare module TSGrid {
     interface ICell {
-        new (column: Column, model: TSCore.Data.Model): Cell;
+        new (column: Column, model: TSCore.App.Data.Model.ActiveModel): Cell;
     }
     class Cell extends TSCore.App.UI.View {
         static CELL_INPUT: number[];
@@ -88,9 +94,9 @@ declare module TSGrid {
         };
         events: TSCore.Events.EventEmitter;
         column: Column;
-        model: TSCore.Data.Model;
+        model: TSCore.App.Data.Model.ActiveModel;
         activated: boolean;
-        constructor(column: Column, model: TSCore.Data.Model);
+        constructor(column: Column, model: TSCore.App.Data.Model.ActiveModel);
         initialize(): void;
         render(): this;
         protected keypress(evt: any): void;
@@ -102,25 +108,25 @@ declare module TSGrid {
         deactivate(): void;
         clear(): void;
         enterEditMode(withModelValue?: any): void;
-        renderError(model: TSCore.Data.Model, column: Column): void;
+        renderError(model: TSCore.App.Data.Model.ActiveModel, column: Column): void;
         exitEditMode(): void;
         remove(): this;
     }
 }
 declare module TSGrid {
     interface ICellEditor {
-        new (column: Column, model: TSCore.Data.Model): CellEditor;
+        new (column: Column, model: TSCore.App.Data.Model.ActiveModel): CellEditor;
     }
     class CellEditor extends TSCore.App.UI.View {
         protected column: Column;
-        protected model: TSCore.Data.Model;
+        protected model: TSCore.App.Data.Model.ActiveModel;
         protected editorName: string;
         protected initialModelValue: any;
-        constructor(column: Column, model: TSCore.Data.Model, editorName: string);
+        constructor(column: Column, model: TSCore.App.Data.Model.ActiveModel, editorName: string);
         setColumn(column: Column): this;
         getColumn(): Column;
-        setModel(model: TSCore.Data.Model): this;
-        getModel(): TSCore.Data.Model;
+        setModel(model: TSCore.App.Data.Model.ActiveModel): this;
+        getModel(): TSCore.App.Data.Model.ActiveModel;
         setEditorName(editorName: string): this;
         getEditorName(): string;
         setInitialModelValue(value: any): this;
@@ -218,7 +224,7 @@ declare module TSGrid {
         protected listenHeaderCells(): void;
         protected headerCellOnClick(e: any): void;
         protected sortName(name: string): void;
-        remove(): TSCore.App.UI.View;
+        remove(): this;
     }
 }
 declare module TSGrid {
@@ -243,7 +249,7 @@ declare module TSGrid {
         column: Column;
         events: TSCore.Events.EventEmitter;
         protected sortDirection: TSCore.Data.SortedListDirection;
-        constructor(column: Column, model: TSCore.Data.Model);
+        constructor(column: Column, model: TSCore.App.Data.Model.ActiveModel);
         click(): void;
         setSortDirection(direction: TSCore.Data.SortedListDirection): void;
         render(): this;
@@ -256,17 +262,17 @@ declare module TSGrid {
 }
 declare module TSGrid {
     interface IRow {
-        new (columns: TSCore.Data.List<Column>, model: TSCore.Data.Model): Row;
+        new (columns: TSCore.Data.List<Column>, model: TSCore.App.Data.Model.ActiveModel): Row;
     }
     class Row extends TSCore.App.UI.View {
         tagName: string;
         columns: TSCore.Data.List<Column>;
         modelId: any;
-        model: TSCore.Data.Model;
+        model: TSCore.App.Data.Model.ActiveModel;
         cells: TSCore.Data.List<Cell>;
-        constructor(columns: TSCore.Data.List<Column>, model: TSCore.Data.Model);
+        constructor(columns: TSCore.Data.List<Column>, model: TSCore.App.Data.Model.ActiveModel);
         initialize(): void;
-        setModel(model: TSCore.Data.Model): this;
+        setModel(model: TSCore.App.Data.Model.ActiveModel): this;
         makeCell(column: Column): Cell;
         render(): this;
         reset(): void;

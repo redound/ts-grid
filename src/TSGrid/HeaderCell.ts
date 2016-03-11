@@ -19,7 +19,7 @@ module TSGrid {
 
         protected sortDirection: TSCore.Data.SortedListDirection = null;
 
-        public constructor(column: Column, model: TSCore.Data.Model) {
+        public constructor(column: Column, model: TSCore.App.Data.Model.ActiveModel) {
 
             super();
 

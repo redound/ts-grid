@@ -121,11 +121,12 @@ var TSGrid;
 (function (TSGrid) {
     var Body = (function (_super) {
         __extends(Body, _super);
-        function Body(columns, collection, rowType) {
+        function Body(delegate, columns, collection, rowType) {
             _super.call(this);
             this.tagName = 'div';
             this.className = 'ts-grid-body';
             this.rowType = TSGrid.Row;
+            this._delegate = delegate;
             this.columns = columns;
             this.collection = collection;
             this.rowType = rowType;
@@ -141,6 +142,7 @@ var TSGrid;
             this.models.each(function (model) {
                 _this.rows.add(new _this.rowType(_this.columns, model));
             });
+            this.prependEmptyRow();
             this.collection.events.on(TSCore.Data.CollectionEvents.ADD, function (evt) { return _this.addModels(evt); });
             this.collection.events.on(TSCore.Data.CollectionEvents.REMOVE, function (evt) { return _this.removeModels(evt); });
             this.models.events.on(TSCore.Data.SortedListEvents.ADD, function (evt) { return _this.insertRows(evt); });
@@ -171,6 +173,10 @@ var TSGrid;
         };
         Body.prototype.getGrid = function () {
             return this._grid;
+        };
+        Body.prototype.prependEmptyRow = function () {
+            this.emptyRow = new this.rowType(this.columns, this._delegate.bodyModelForEmptyRow());
+            this.rows.prepend(this.emptyRow);
         };
         Body.prototype.insertRow = function (model, index, items) {
             if (_.isUndefined(items)) {
@@ -246,7 +252,8 @@ var TSGrid;
             this.rows.each(function (row) {
                 row.remove.apply(row, arguments);
             });
-            return _super.prototype.remove.call(this);
+            _super.prototype.remove.call(this);
+            return this;
         };
         Body.prototype.getActiveCell = function () {
             var model = this.activePosition.model;
@@ -890,7 +897,8 @@ var TSGrid;
         Grid.prototype.remove = function () {
             this._header && this._header.remove.apply(this._header, arguments);
             this._body.remove.apply(this._body, arguments);
-            return _super.prototype.remove.call(this);
+            _super.prototype.remove.call(this);
+            return this;
         };
         return Grid;
     })(TSCore.App.UI.View);

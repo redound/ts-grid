@@ -1,7 +1,7 @@
 module TSGrid {
 
     export interface IRow {
-        new (columns: TSCore.Data.List<Column>, model: TSCore.Data.Model): Row;
+        new (columns: TSCore.Data.List<Column>, model: TSCore.App.Data.Model.ActiveModel): Row;
     }
 
     export class Row extends TSCore.App.UI.View {
@@ -12,11 +12,11 @@ module TSGrid {
 
         public modelId: any;
 
-        public model: TSCore.Data.Model;
+        public model: TSCore.App.Data.Model.ActiveModel;
 
         public cells: TSCore.Data.List<Cell>;
 
-        public constructor(columns: TSCore.Data.List<Column>, model: TSCore.Data.Model) {
+        public constructor(columns: TSCore.Data.List<Column>, model: TSCore.App.Data.Model.ActiveModel) {
 
             super();
 
@@ -38,7 +38,7 @@ module TSGrid {
             });
         }
 
-        public setModel(model: TSCore.Data.Model): this {
+        public setModel(model: TSCore.App.Data.Model.ActiveModel): this {
 
             if (!model) return;
             this.model = model;

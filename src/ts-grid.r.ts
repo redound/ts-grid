@@ -1,5 +1,6 @@
 /// <reference path="../../ts-core/build/ts-core.d.ts" />
 /// <reference path="../../ts-core-app/build/ts-core-app.d.ts" />
+/// <reference path="../node_modules/ts-validate/build/ts-validate.d.ts" />
 /// <reference path="../typings/tsd.d.ts" />
 //grunt-start
 /// <reference path="TSGrid/Body.ts" />

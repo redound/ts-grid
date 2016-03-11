@@ -200,10 +200,11 @@ module TSGrid {
          *
          * @chainable
          */
-        public remove() {
+        public remove(): this {
             this._header && this._header.remove.apply(this._header, arguments);
             this._body.remove.apply(this._body, arguments);
-            return super.remove();
+            super.remove();
+            return this;
         }
     }
 }

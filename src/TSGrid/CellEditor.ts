@@ -3,20 +3,20 @@
 module TSGrid {
 
     export interface ICellEditor {
-        new (column: Column, model: TSCore.Data.Model): CellEditor;
+        new (column: Column, model: TSCore.App.Data.Model.ActiveModel): CellEditor;
     }
 
     export class CellEditor extends TSCore.App.UI.View {
 
         protected column: Column;
 
-        protected model: TSCore.Data.Model;
+        protected model: TSCore.App.Data.Model.ActiveModel;
 
         protected editorName: string;
 
         protected initialModelValue: any;
 
-        public constructor(column: Column, model: TSCore.Data.Model, editorName: string) {
+        public constructor(column: Column, model: TSCore.App.Data.Model.ActiveModel, editorName: string) {
             super();
             this.setColumn(column);
             this.setModel(model);
@@ -49,16 +49,16 @@ module TSGrid {
          * @returns {TSGrid.CellEditor}
          * @chainable
          */
-        public setModel(model: TSCore.Data.Model): this {
+        public setModel(model: TSCore.App.Data.Model.ActiveModel): this {
             this.model = model;
             return this;
         }
 
         /**
          * Get the model.
-         * @returns {TSCore.Data.Model}
+         * @returns {TSCore.App.Data.Model.ActiveModel}
          */
-        public getModel(): TSCore.Data.Model {
+        public getModel(): TSCore.App.Data.Model.ActiveModel {
             return this.model;
         }
 

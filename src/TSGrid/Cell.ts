@@ -1,7 +1,7 @@
 module TSGrid {
 
     export interface ICell {
-        new (column: Column, model: TSCore.Data.Model): Cell;
+        new (column: Column, model: TSCore.App.Data.Model.ActiveModel): Cell;
     }
 
     export class Cell extends TSCore.App.UI.View {
@@ -36,11 +36,11 @@ module TSGrid {
          * Model of the Row instance this cell
          * belongs to.
          */
-        public model: TSCore.Data.Model;
+        public model: TSCore.App.Data.Model.ActiveModel;
 
         public activated: boolean = false;
 
-        public constructor(column: Column, model: TSCore.Data.Model) {
+        public constructor(column: Column, model: TSCore.App.Data.Model.ActiveModel) {
 
             super();
 
@@ -305,7 +305,7 @@ module TSGrid {
          * @param model
          * @param column
          */
-        public renderError(model: TSCore.Data.Model, column: Column) {
+        public renderError(model: TSCore.App.Data.Model.ActiveModel, column: Column) {
             if (column == null || column.getName() == this.column.getName()) {
                 this.$el.addClass("error");
             }

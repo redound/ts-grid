@@ -9,6 +9,7 @@
   "dependencies": {
     "ts-core": "git://github.com/ts-core/ts-core#development",
     "ts-core-app": "git://github.com/ts-core/ts-core-app#dev-0.6.0",
+    "ts-validate": "git+https://github.com/redound/ts-validate.git",
     "tsd": "^0.6.3",
     "underscore": "^1.8.3"
   },
