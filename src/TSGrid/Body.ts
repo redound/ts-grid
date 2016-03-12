@@ -10,6 +10,8 @@ module TSGrid {
 
     export interface IBodyDelegate {
         bodyModelForEmptyRow(): TSCore.App.Data.Model.ActiveModel;
+        bodyPrimaryKeyForModels(): any;
+        bodyValidateEmptyRow(model: TSCore.App.Data.Model.ActiveModel): boolean;
     }
 
     export class Body extends TSCore.App.UI.View {
@@ -19,6 +21,8 @@ module TSGrid {
         public className:string = 'ts-grid-body';
 
         public activePosition:GridPosition;
+
+        public activeRow:Row;
 
         public activeCell:Cell;
 
@@ -35,13 +39,15 @@ module TSGrid {
 
         public collection:TSCore.Data.ModelCollection<TSCore.App.Data.Model.ActiveModel>;
 
-        public emptyRow: Row;
+        public emptyRow:Row;
 
         public _grid:Grid;
 
-        protected _delegate: IBodyDelegate;
+        protected _delegate:IBodyDelegate;
 
-        public constructor(delegate: IBodyDelegate, columns:TSCore.Data.List<Column>, collection:TSCore.Data.ModelCollection<TSCore.App.Data.Model.ActiveModel>, rowType?:IRow) {
+        public events: TSCore.Events.EventEmitter = new TSCore.Events.EventEmitter();
+
+        public constructor(delegate:IBodyDelegate, columns:TSCore.Data.List<Column>, collection:TSCore.Data.ModelCollection<TSCore.App.Data.Model.ActiveModel>, rowType:IRow = TSGrid.Row) {
 
             super();
 
@@ -66,7 +72,7 @@ module TSGrid {
             this.rows = new TSCore.Data.List<Row>();
 
             var models = this.collection.all();
-            this.models = new TSCore.Data.SortedList<TSCore.App.Data.Model.ActiveModel>(models, 'title');
+            this.models = new TSCore.Data.SortedList<TSCore.App.Data.Model.ActiveModel>(models, this._delegate.bodyPrimaryKeyForModels());
 
             this.models.resort();
             this.models.each(model => {
@@ -84,6 +90,10 @@ module TSGrid {
             this.models.events.on(TSCore.Data.SortedListEvents.ADD, evt => this.insertRows(evt));
             this.models.events.on(TSCore.Data.SortedListEvents.REMOVE, evt => this.removeRows(evt));
             this.models.events.on(TSCore.Data.SortedListEvents.SORT, evt => this.refresh(evt));
+        }
+
+        public defaultSortPredicate(): any {
+            return this._delegate.bodyPrimaryKeyForModels();
         }
 
         protected addModels(evt) {
@@ -138,7 +148,17 @@ module TSGrid {
                 this._delegate.bodyModelForEmptyRow()
             );
 
+            this.emptyRow.validationEnabled(false);
+
+            this.emptyRow.events.on(TSGrid.RowEvents.CHANGED, e => this.emptyRowDidChange(e));
+
             this.rows.prepend(this.emptyRow);
+        }
+
+        protected emptyRowDidChange(e) {
+
+            var row = e.params.row;
+            row.valid = this._delegate.bodyValidateEmptyRow(row.model);
         }
 
         /**
@@ -247,6 +267,8 @@ module TSGrid {
                 this.rows.add(row);
             });
 
+            this.prependEmptyRow();
+
             this.render();
             grid.events.trigger(TSGridEvents.REFRESH, {body: this});
         }
@@ -280,7 +302,7 @@ module TSGrid {
             return this;
         }
 
-        public remove(): this {
+        public remove():this {
             this.rows.each(function (row) {
                 row.remove.apply(row, arguments);
             });
@@ -308,19 +330,28 @@ module TSGrid {
         public moveToCell(evt) {
 
             var model:TSCore.App.Data.Model.ActiveModel = evt.params.model;
+            var row = this.rows.whereFirst({modelId: model.getId()});
             var column:TSGrid.Column = evt.params.column;
             var cell = this.getCell(model, column);
 
-            this.activateCell(cell);
+            this.activate(row, cell);
         }
 
-        protected activateCell(cell:TSGrid.Cell) {
+        protected activate(row: TSGrid.Row, cell:TSGrid.Cell) {
+
+            if (this.activeRow !== row) {
+                var oldRow = this.activeRow;
+                this.activeRow = row;
+                this.changedRow(oldRow, row);
+            }
 
             if (this.activeCell !== cell) {
+                var oldCell = this.activeCell;
                 if (this.activeCell) {
                     this.activeCell.deactivate();
                 }
                 this.activeCell = cell;
+                this.changedCell(oldCell, cell);
             }
 
             if (cell.isActivated()) {
@@ -328,6 +359,33 @@ module TSGrid {
             } else {
                 cell.activate();
             }
+        }
+
+        protected changedRow(fromRow: TSGrid.Row, toRow: TSGrid.Row) {
+
+            if (fromRow) {
+                fromRow.setActive(false);
+            }
+
+            if (toRow) {
+                toRow.setActive(true);
+            }
+
+            console.debug('fromRow', fromRow, 'toRow', toRow);
+
+            if (fromRow === this.emptyRow && this.emptyRow.valid) {
+                console.debug('Insert emptyrow');
+                var model = this.emptyRow.model;
+                this.models.add(model);
+                this.models.resort();
+            }
+
+            this.events.trigger(TSGrid.BodyEvents.CHANGED_ROW, { fromRow: fromRow, toRow: toRow });
+        }
+
+        protected changedCell(fromCell: TSGrid.Cell, toCell: TSGrid.Cell) {
+
+            this.events.trigger(TSGrid.BodyEvents.CHANGED_CELL, { fromCell: fromCell, toCell: toCell });
         }
 
         /**
@@ -370,7 +428,7 @@ module TSGrid {
                     if (row) {
                         cell = row.cells.get(j);
                         if (TSGrid.callByNeed(cell.column.getEditable(), cell.column, model)) {
-                            this.activateCell(cell);
+                            this.activate(row, cell);
                             grid.events.trigger(TSGridEvents.NEXT, {
                                 row: m,
                                 column: j,
@@ -400,7 +458,7 @@ module TSGrid {
                         editable = TSGrid.callByNeed(cell.column.getEditable(), cell.column, model);
 
                         if (renderable && editable) {
-                            this.activateCell(cell);
+                            this.activate(row, cell);
                             grid.events.trigger(TSGridEvents.NEXT, {
                                 row: m,
                                 column: n,

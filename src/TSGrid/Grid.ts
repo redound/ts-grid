@@ -181,7 +181,8 @@ module TSGrid {
                         direction = SortedListDirection.DESCENDING;
                         break;
                     case SortedListDirection.DESCENDING:
-                        direction = null;
+                        name = this._body.defaultSortPredicate();
+                        direction = SortedListDirection.ASCENDING;
                         break;
                     default:
                         direction = SortedListDirection.ASCENDING;

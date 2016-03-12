@@ -16,6 +16,14 @@ module TSGrid {
 
         public cells: TSCore.Data.List<Cell>;
 
+        public events: TSCore.Events.EventEmitter = new TSCore.Events.EventEmitter();
+
+        protected _validationEnabled: boolean = true;
+
+        protected _active;
+
+        public valid: boolean = false;
+
         public constructor(columns: TSCore.Data.List<Column>, model: TSCore.App.Data.Model.ActiveModel) {
 
             super();
@@ -38,6 +46,25 @@ module TSGrid {
             });
         }
 
+        public validationEnabled(validationEnabled: boolean = true): this {
+            this._validationEnabled = validationEnabled;
+            return this;
+        }
+
+        public getValidationEnabled(): boolean {
+            return this._validationEnabled;
+        }
+
+        public setActive(active: boolean) {
+            this._active = active;
+
+            if (this._active) {
+                this.$el.addClass('active');
+            } else {
+                this.$el.removeClass('active');
+            }
+        }
+
         public setModel(model: TSCore.App.Data.Model.ActiveModel): this {
 
             if (!model) return;
@@ -50,10 +77,19 @@ module TSGrid {
 
             var cellType = column.getCellType();
 
-            return new cellType(
+            var cell = new cellType(
                 column,
                 this.model
             );
+
+            cell.events.on(TSGrid.CellEvents.CHANGED, e => this.cellDidChange(e));
+
+            return cell;
+        }
+
+        protected cellDidChange(e) {
+
+            this.events.trigger(TSGrid.RowEvents.CHANGED, { row: this });
         }
 
         /**
@@ -65,6 +101,9 @@ module TSGrid {
 
             var fragment = document.createDocumentFragment();
             this.cells.each(cell => {
+
+                cell.validationEnabled(this.getValidationEnabled());
+
                 fragment.appendChild(cell.render().el);
             });
 

@@ -43,11 +43,14 @@ declare module TSGrid {
     }
     interface IBodyDelegate {
         bodyModelForEmptyRow(): TSCore.App.Data.Model.ActiveModel;
+        bodyPrimaryKeyForModels(): any;
+        bodyValidateEmptyRow(model: TSCore.App.Data.Model.ActiveModel): boolean;
     }
     class Body extends TSCore.App.UI.View {
         tagName: string;
         className: string;
         activePosition: GridPosition;
+        activeRow: Row;
         activeCell: Cell;
         columns: TSCore.Data.List<Column>;
         rowType: IRow;
@@ -57,13 +60,16 @@ declare module TSGrid {
         emptyRow: Row;
         _grid: Grid;
         protected _delegate: IBodyDelegate;
+        events: TSCore.Events.EventEmitter;
         constructor(delegate: IBodyDelegate, columns: TSCore.Data.List<Column>, collection: TSCore.Data.ModelCollection<TSCore.App.Data.Model.ActiveModel>, rowType?: IRow);
         initialize(): void;
+        defaultSortPredicate(): any;
         protected addModels(evt: any): void;
         protected removeModels(evt: any): void;
         setGrid(grid: Grid): void;
         getGrid(): Grid;
         protected prependEmptyRow(): void;
+        protected emptyRowDidChange(e: any): void;
         insertRow(model: TSCore.App.Data.Model.ActiveModel, index?: number, items?: TSCore.Data.ModelCollection<TSCore.App.Data.Model.ActiveModel>): void;
         insertRows(evt: any): void;
         removeRows(evt: any): void;
@@ -74,9 +80,15 @@ declare module TSGrid {
         getActiveCell(): Cell;
         getCell(model: TSCore.App.Data.Model.ActiveModel, column: TSGrid.Column): TSGrid.Cell;
         moveToCell(evt: any): void;
-        protected activateCell(cell: TSGrid.Cell): void;
+        protected activate(row: TSGrid.Row, cell: TSGrid.Cell): void;
+        protected changedRow(fromRow: TSGrid.Row, toRow: TSGrid.Row): void;
+        protected changedCell(fromCell: TSGrid.Cell, toCell: TSGrid.Cell): void;
         moveToNextCell(evt: any): this;
     }
+}
+declare module TSGrid.BodyEvents {
+    const CHANGED_ROW: string;
+    const CHANGED_CELL: string;
 }
 declare module TSGrid {
     interface ICell {
@@ -96,8 +108,13 @@ declare module TSGrid {
         column: Column;
         model: TSCore.App.Data.Model.ActiveModel;
         activated: boolean;
+        protected _validationEnabled: boolean;
         constructor(column: Column, model: TSCore.App.Data.Model.ActiveModel);
         initialize(): void;
+        validationEnabled(validationEnabled?: boolean): this;
+        getValidationEnabled(): boolean;
+        setModelValue(value: any): this;
+        getModelValue(): any;
         render(): this;
         protected keypress(evt: any): void;
         protected keydown(evt: any): void;
@@ -108,7 +125,8 @@ declare module TSGrid {
         deactivate(): void;
         clear(): void;
         enterEditMode(withModelValue?: any): void;
-        renderError(model: TSCore.App.Data.Model.ActiveModel, column: Column): void;
+        protected cellEditorOnSave(e: any): void;
+        protected cellEditorOnCancel(e: any): void;
         exitEditMode(): void;
         remove(): this;
     }
@@ -122,6 +140,7 @@ declare module TSGrid {
         protected model: TSCore.App.Data.Model.ActiveModel;
         protected editorName: string;
         protected initialModelValue: any;
+        events: TSCore.Events.EventEmitter;
         constructor(column: Column, model: TSCore.App.Data.Model.ActiveModel, editorName: string);
         setColumn(column: Column): this;
         getColumn(): Column;
@@ -131,11 +150,17 @@ declare module TSGrid {
         getEditorName(): string;
         setInitialModelValue(value: any): this;
         getInitialModelValue(): any;
-        setModelValue(value: any): this;
         getModelValue(): any;
         save(cmd: Command, value: any): void;
         cancel(cmd: Command): void;
     }
+}
+declare module TSGrid.CellEditorEvents {
+    const SAVE: string;
+    const CANCEL: string;
+}
+declare module TSGrid.CellEvents {
+    const CHANGED: string;
 }
 declare module TSGrid {
     class Column {
@@ -270,10 +295,18 @@ declare module TSGrid {
         modelId: any;
         model: TSCore.App.Data.Model.ActiveModel;
         cells: TSCore.Data.List<Cell>;
+        events: TSCore.Events.EventEmitter;
+        protected _validationEnabled: boolean;
+        protected _active: any;
+        valid: boolean;
         constructor(columns: TSCore.Data.List<Column>, model: TSCore.App.Data.Model.ActiveModel);
         initialize(): void;
+        validationEnabled(validationEnabled?: boolean): this;
+        getValidationEnabled(): boolean;
+        setActive(active: boolean): void;
         setModel(model: TSCore.App.Data.Model.ActiveModel): this;
         makeCell(column: Column): Cell;
+        protected cellDidChange(e: any): void;
         render(): this;
         reset(): void;
     }
@@ -288,6 +321,9 @@ declare module TSGrid {
         makeCell(column: Column): any;
         render(): this;
     }
+}
+declare module TSGrid.RowEvents {
+    const CHANGED: string;
 }
 declare module TSGrid {
     var Extension: {};

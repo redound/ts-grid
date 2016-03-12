@@ -16,6 +16,8 @@ module TSGrid {
 
         protected initialModelValue: any;
 
+        public events: TSCore.Events.EventEmitter = new TSCore.Events.EventEmitter;
+
         public constructor(column: Column, model: TSCore.App.Data.Model.ActiveModel, editorName: string) {
             super();
             this.setColumn(column);
@@ -100,25 +102,6 @@ module TSGrid {
         }
 
         /**
-         * Set the modelValue.
-         * @param value
-         * @returns {TSGrid.CellEditor}
-         * @chainable
-         */
-        public setModelValue(value: any) {
-
-            var setter = this.column.getSetter();
-
-            if (setter) {
-                setter(this.model, value);
-            } else {
-                this.model.set(this.column.getName(), value);
-            }
-
-            return this;
-        }
-
-        /**
          * Get the modelValue.
          * @returns {*|any}
          */
@@ -144,18 +127,15 @@ module TSGrid {
 
             var model = this.model;
             var column = this.column;
-            var grid = column.getGrid();
-
-            this.setModelValue(value);
 
             var editedEvent = {
+                modelValue: value,
                 model: model,
                 column: column,
                 command: cmd,
             };
 
-            grid.events.trigger(TSGridEvents.EDITED, editedEvent);
-            model.events.trigger(TSGridEvents.EDITED, editedEvent);
+            this.events.trigger(TSGrid.CellEditorEvents.SAVE, editedEvent);
         }
 
         /**
@@ -167,7 +147,6 @@ module TSGrid {
 
             var model = this.model;
             var column = this.column;
-            var grid = column.getGrid();
 
             var editedEvent = {
                 model: model,
@@ -175,8 +154,7 @@ module TSGrid {
                 command: cmd
             };
 
-            grid.events.trigger(TSGridEvents.EDITED, editedEvent);
-            model.events.trigger(TSGridEvents.EDITED, editedEvent);
+            this.events.trigger(TSGrid.CellEditorEvents.CANCEL, editedEvent);
         }
     }
 }

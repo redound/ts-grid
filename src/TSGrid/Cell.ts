@@ -40,6 +40,8 @@ module TSGrid {
 
         public activated: boolean = false;
 
+        protected _validationEnabled: boolean = false;
+
         public constructor(column: Column, model: TSCore.App.Data.Model.ActiveModel) {
 
             super();
@@ -65,6 +67,49 @@ module TSGrid {
             if (TSGrid.callByNeed(this.column.getRenderable(), this.column, this.model)) this.$el.addClass("renderable");
         }
 
+        public validationEnabled(validationEnabled: boolean = true): this {
+            this._validationEnabled = validationEnabled;
+            return this;
+        }
+
+        public getValidationEnabled(): boolean {
+            return this._validationEnabled;
+        }
+
+        /**
+         * Set the modelValue.
+         * @param value
+         * @returns {TSGrid.CellEditor}
+         * @chainable
+         */
+        public setModelValue(value: any) {
+
+            var setter = this.column.getSetter();
+
+            if (setter) {
+                setter(this.model, value);
+            } else {
+                this.model.set(this.column.getName(), value);
+            }
+
+            return this;
+        }
+
+        /**
+         * Get the modelValue.
+         * @returns {*|any}
+         */
+        public getModelValue(): any {
+
+            var getter = this.column.getGetter();
+
+            if (getter) {
+                return getter(this.model);
+            }
+
+            return this.model.get(this.column.getName());
+        }
+
         /**
          * This function is responsible for
          * rendering the element in display mode.
@@ -82,19 +127,32 @@ module TSGrid {
          * @chainable
          */
         public render(): this {
+
             this.$el.empty();
+
             var formatter = this.column.getFormatter();
             var getter = this.column.getGetter();
+
             var modelValue = getter ? getter(this.model) : this.model.get(this.column.getName());
             var value = formatter ? formatter(this.model) : modelValue;
+
             this.$el.html(value);
             this.$el.attr('width', this.column.getWidth());
             this.$el.css('max-width', this.column.getWidth());
+
             var columnClassName = this.column.getClassName();
             if (columnClassName) {
                 this.$el.addClass(columnClassName);
             }
+
+            if (this.getValidationEnabled() && this.model.isValid(this.column.getName()) === false) {
+                this.$el.addClass('error');
+            } else {
+                this.$el.removeClass('error');
+            }
+
             this.delegateEvents();
+
             return this;
         }
 
@@ -277,6 +335,10 @@ module TSGrid {
                     this.currentEditor.setInitialModelValue(withModelValue);
                 }
 
+
+                this.currentEditor.events.on(TSGrid.CellEditorEvents.SAVE, e => this.cellEditorOnSave(e));
+                this.currentEditor.events.on(TSGrid.CellEditorEvents.CANCEL, e => this.cellEditorOnCancel(e));
+
                 this.currentEditor.render();
 
                 setTimeout(() => {
@@ -300,15 +362,22 @@ module TSGrid {
             }
         }
 
-        /**
-         * Put an `error` CSS class on the table cell.
-         * @param model
-         * @param column
-         */
-        public renderError(model: TSCore.App.Data.Model.ActiveModel, column: Column) {
-            if (column == null || column.getName() == this.column.getName()) {
-                this.$el.addClass("error");
-            }
+        protected cellEditorOnSave(e) {
+
+            var modelValue = e.params.modelValue;
+
+            this.setModelValue(modelValue);
+
+            this.events.trigger(TSGrid.CellEvents.CHANGED, e.params);
+
+            var grid = this.column.getGrid();
+            grid.events.trigger(TSGridEvents.EDITED, e.params);
+        }
+
+        protected cellEditorOnCancel(e) {
+
+            var grid = this.column.getGrid();
+            grid.events.trigger(TSGridEvents.EDITED, e.params);
         }
 
         /**
