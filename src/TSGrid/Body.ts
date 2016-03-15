@@ -9,9 +9,15 @@ module TSGrid {
     }
 
     export interface IBodyDelegate {
-        bodyModelForEmptyRow(): TSCore.App.Data.Model.ActiveModel;
-        bodyPrimaryKeyForModels(): any;
-        bodyValidateEmptyRow(model: TSCore.App.Data.Model.ActiveModel): boolean;
+        bodyModelForEmptyRow(body: TSGrid.Body): TSCore.App.Data.Model.ActiveModel;
+        bodyPrimaryKeyForModels(body: TSGrid.Body): any;
+        bodyBeforeCreateModel(body: TSGrid.Body, model: TSCore.App.Data.Model.ActiveModel): void;
+        bodyCreateModel(body: TSGrid.Body, model: TSCore.App.Data.Model.ActiveModel): ng.IPromise<TSCore.App.Data.Model.ActiveModel>;
+        bodyAfterCreateModel(body: TSGrid.Body, model: TSCore.App.Data.Model.ActiveModel): void;
+        bodyValidateModel(body: TSGrid.Body, model: TSCore.App.Data.Model.ActiveModel): boolean;
+        bodyShouldUpdateModel(body: TSGrid.Body, model: TSCore.App.Data.Model.ActiveModel): boolean;
+        bodyUpdateModel(body: TSGrid.Body, model: TSCore.App.Data.Model.ActiveModel): ng.IPromise<TSCore.App.Data.Model.ActiveModel>;
+        bodyAfterUpdateModel(body: TSGrid.Body, model: TSCore.App.Data.Model.ActiveModel): void;
     }
 
     export class Body extends TSCore.App.UI.View {
@@ -72,7 +78,7 @@ module TSGrid {
             this.rows = new TSCore.Data.List<Row>();
 
             var models = this.collection.all();
-            this.models = new TSCore.Data.SortedList<TSCore.App.Data.Model.ActiveModel>(models, this._delegate.bodyPrimaryKeyForModels());
+            this.models = new TSCore.Data.SortedList<TSCore.App.Data.Model.ActiveModel>(models, this._delegate.bodyPrimaryKeyForModels(this));
 
             this.models.resort();
             this.models.each(model => {
@@ -93,7 +99,7 @@ module TSGrid {
         }
 
         public defaultSortPredicate(): any {
-            return this._delegate.bodyPrimaryKeyForModels();
+            return this._delegate.bodyPrimaryKeyForModels(this);
         }
 
         protected addModels(evt) {
@@ -145,10 +151,8 @@ module TSGrid {
 
             this.emptyRow = new this.rowType(
                 this.columns,
-                this._delegate.bodyModelForEmptyRow()
+                this._delegate.bodyModelForEmptyRow(this)
             );
-
-            this.emptyRow.validationEnabled(false);
 
             this.emptyRow.events.on(TSGrid.RowEvents.CHANGED, e => this.emptyRowDidChange(e));
 
@@ -158,7 +162,7 @@ module TSGrid {
         protected emptyRowDidChange(e) {
 
             var row = e.params.row;
-            row.valid = this._delegate.bodyValidateEmptyRow(row.model);
+            row.valid = this._delegate.bodyValidateModel(this, row.model);
         }
 
         /**
@@ -339,6 +343,10 @@ module TSGrid {
 
         protected activate(row: TSGrid.Row, cell:TSGrid.Cell) {
 
+            if (cell.column.getEditable() === false) {
+                return;
+            }
+
             if (this.activeRow !== row) {
                 var oldRow = this.activeRow;
                 this.activeRow = row;
@@ -355,8 +363,10 @@ module TSGrid {
             }
 
             if (cell.isActivated()) {
+                console.debug('enterEditMode');
                 cell.enterEditMode();
             } else {
+                console.debug('activate');
                 cell.activate();
             }
         }
@@ -373,17 +383,48 @@ module TSGrid {
 
             console.debug('fromRow', fromRow, 'toRow', toRow);
 
-            if (fromRow === this.emptyRow && this.emptyRow.valid) {
-                console.debug('Insert emptyrow');
-                var model = this.emptyRow.model;
-                this.models.add(model);
-                this.models.resort();
+            if (fromRow && fromRow !== this.emptyRow) {
+
+                fromRow.valid = this._delegate.bodyValidateModel(this, fromRow.model);
+
+                var shouldUpdate = this._delegate.bodyShouldUpdateModel(this, fromRow.model);
+
+                if (fromRow.valid && shouldUpdate) {
+
+                    fromRow.setLoading(true);
+                    this._delegate.bodyUpdateModel(this, fromRow.model).then(model => {
+                        fromRow.setLoading(false);
+                        this._delegate.bodyAfterUpdateModel(this, fromRow.model);
+                    });
+                }
+            }
+
+            if (fromRow && fromRow === this.emptyRow && this.emptyRow.valid) {
+                var rowModel = this.emptyRow.model;
+                this._delegate.bodyBeforeCreateModel(this, rowModel);
+                this.emptyRow.setLoading(true);
+                this._delegate.bodyCreateModel(this, rowModel).then(model => {
+                    this.emptyRow.setLoading(false);
+                    this.models.add(model);
+                    this._delegate.bodyAfterCreateModel(this, model);
+                    this.focusEmptyRow();
+                });
             }
 
             this.events.trigger(TSGrid.BodyEvents.CHANGED_ROW, { fromRow: fromRow, toRow: toRow });
         }
 
+        protected focusEmptyRow() {
+            this.activeRow = null;
+            this.activeCell = null;
+            var row = this.rows.get(0);
+            var cell = row.cells.get(0);
+            this.activate(row, cell);
+        }
+
         protected changedCell(fromCell: TSGrid.Cell, toCell: TSGrid.Cell) {
+
+            console.debug('fromCell', fromCell, 'toCell', toCell);
 
             this.events.trigger(TSGrid.BodyEvents.CHANGED_CELL, { fromCell: fromCell, toCell: toCell });
         }
@@ -419,7 +460,7 @@ module TSGrid {
 
             if (cmd.enter() || cmd.left() || cmd.right() || cmd.up() || cmd.down() || cmd.shiftTab() || cmd.tab()) {
                 var l = this.columns.length;
-                var maxOffset = l * this.collection.length;
+                var maxOffset = l * this.rows.length;
 
                 if (cmd.up() || cmd.down() || cmd.enter()) {
                     m = i + (cmd.up() ? -1 : 1);

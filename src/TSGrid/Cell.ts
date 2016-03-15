@@ -145,7 +145,7 @@ module TSGrid {
                 this.$el.addClass(columnClassName);
             }
 
-            if (this.getValidationEnabled() && this.model.isValid(this.column.getName()) === false) {
+            if (this.getValidationEnabled() && this.model.isValid(this.column.getName()) === false && this.model.isDirty(this.column.getName()) === true) {
                 this.$el.addClass('error');
             } else {
                 this.$el.removeClass('error');
@@ -288,7 +288,7 @@ module TSGrid {
                 this.model.set(this.column.getName(), null);
             }
 
-            this.render();
+            this.events.trigger(CellEvents.CLEARED, { cell: this });
         }
 
         /**

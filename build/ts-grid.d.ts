@@ -42,9 +42,15 @@ declare module TSGrid {
         column: TSGrid.Column;
     }
     interface IBodyDelegate {
-        bodyModelForEmptyRow(): TSCore.App.Data.Model.ActiveModel;
-        bodyPrimaryKeyForModels(): any;
-        bodyValidateEmptyRow(model: TSCore.App.Data.Model.ActiveModel): boolean;
+        bodyModelForEmptyRow(body: TSGrid.Body): TSCore.App.Data.Model.ActiveModel;
+        bodyPrimaryKeyForModels(body: TSGrid.Body): any;
+        bodyBeforeCreateModel(body: TSGrid.Body, model: TSCore.App.Data.Model.ActiveModel): void;
+        bodyCreateModel(body: TSGrid.Body, model: TSCore.App.Data.Model.ActiveModel): ng.IPromise<TSCore.App.Data.Model.ActiveModel>;
+        bodyAfterCreateModel(body: TSGrid.Body, model: TSCore.App.Data.Model.ActiveModel): void;
+        bodyValidateModel(body: TSGrid.Body, model: TSCore.App.Data.Model.ActiveModel): boolean;
+        bodyShouldUpdateModel(body: TSGrid.Body, model: TSCore.App.Data.Model.ActiveModel): boolean;
+        bodyUpdateModel(body: TSGrid.Body, model: TSCore.App.Data.Model.ActiveModel): ng.IPromise<TSCore.App.Data.Model.ActiveModel>;
+        bodyAfterUpdateModel(body: TSGrid.Body, model: TSCore.App.Data.Model.ActiveModel): void;
     }
     class Body extends TSCore.App.UI.View {
         tagName: string;
@@ -82,6 +88,7 @@ declare module TSGrid {
         moveToCell(evt: any): void;
         protected activate(row: TSGrid.Row, cell: TSGrid.Cell): void;
         protected changedRow(fromRow: TSGrid.Row, toRow: TSGrid.Row): void;
+        protected focusEmptyRow(): void;
         protected changedCell(fromCell: TSGrid.Cell, toCell: TSGrid.Cell): void;
         moveToNextCell(evt: any): this;
     }
@@ -161,6 +168,7 @@ declare module TSGrid.CellEditorEvents {
 }
 declare module TSGrid.CellEvents {
     const CHANGED: string;
+    const CLEARED: string;
 }
 declare module TSGrid {
     class Column {
@@ -296,17 +304,17 @@ declare module TSGrid {
         model: TSCore.App.Data.Model.ActiveModel;
         cells: TSCore.Data.List<Cell>;
         events: TSCore.Events.EventEmitter;
-        protected _validationEnabled: boolean;
         protected _active: any;
+        protected _loading: any;
         valid: boolean;
         constructor(columns: TSCore.Data.List<Column>, model: TSCore.App.Data.Model.ActiveModel);
         initialize(): void;
-        validationEnabled(validationEnabled?: boolean): this;
-        getValidationEnabled(): boolean;
+        setLoading(loading: boolean): void;
         setActive(active: boolean): void;
         setModel(model: TSCore.App.Data.Model.ActiveModel): this;
         makeCell(column: Column): Cell;
         protected cellDidChange(e: any): void;
+        protected cellDidClear(e: any): void;
         render(): this;
         reset(): void;
     }

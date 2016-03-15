@@ -18,9 +18,9 @@ module TSGrid {
 
         public events: TSCore.Events.EventEmitter = new TSCore.Events.EventEmitter();
 
-        protected _validationEnabled: boolean = true;
-
         protected _active;
+
+        protected _loading;
 
         public valid: boolean = false;
 
@@ -46,13 +46,14 @@ module TSGrid {
             });
         }
 
-        public validationEnabled(validationEnabled: boolean = true): this {
-            this._validationEnabled = validationEnabled;
-            return this;
-        }
+        public setLoading(loading: boolean) {
+            this._loading = loading;
 
-        public getValidationEnabled(): boolean {
-            return this._validationEnabled;
+            if (this._loading) {
+                this.$el.addClass('loading');
+            } else {
+                this.$el.removeClass('loading');
+            }
         }
 
         public setActive(active: boolean) {
@@ -83,6 +84,7 @@ module TSGrid {
             );
 
             cell.events.on(TSGrid.CellEvents.CHANGED, e => this.cellDidChange(e));
+            cell.events.on(TSGrid.CellEvents.CLEARED, e => this.cellDidClear(e));
 
             return cell;
         }
@@ -90,6 +92,11 @@ module TSGrid {
         protected cellDidChange(e) {
 
             this.events.trigger(TSGrid.RowEvents.CHANGED, { row: this });
+            this.render();
+        }
+
+        protected cellDidClear(e) {
+            this.render();
         }
 
         /**
@@ -101,9 +108,7 @@ module TSGrid {
 
             var fragment = document.createDocumentFragment();
             this.cells.each(cell => {
-
-                cell.validationEnabled(this.getValidationEnabled());
-
+                cell.validationEnabled(true);
                 fragment.appendChild(cell.render().el);
             });
 

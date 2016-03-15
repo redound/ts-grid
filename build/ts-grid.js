@@ -139,7 +139,7 @@ var TSGrid;
             _super.prototype.initialize.call(this);
             this.rows = new TSCore.Data.List();
             var models = this.collection.all();
-            this.models = new TSCore.Data.SortedList(models, this._delegate.bodyPrimaryKeyForModels());
+            this.models = new TSCore.Data.SortedList(models, this._delegate.bodyPrimaryKeyForModels(this));
             this.models.resort();
             this.models.each(function (model) {
                 _this.rows.add(new _this.rowType(_this.columns, model));
@@ -152,7 +152,7 @@ var TSGrid;
             this.models.events.on(TSCore.Data.SortedListEvents.SORT, function (evt) { return _this.refresh(evt); });
         };
         Body.prototype.defaultSortPredicate = function () {
-            return this._delegate.bodyPrimaryKeyForModels();
+            return this._delegate.bodyPrimaryKeyForModels(this);
         };
         Body.prototype.addModels = function (evt) {
             var _this = this;
@@ -181,14 +181,13 @@ var TSGrid;
         };
         Body.prototype.prependEmptyRow = function () {
             var _this = this;
-            this.emptyRow = new this.rowType(this.columns, this._delegate.bodyModelForEmptyRow());
-            this.emptyRow.validationEnabled(false);
+            this.emptyRow = new this.rowType(this.columns, this._delegate.bodyModelForEmptyRow(this));
             this.emptyRow.events.on(TSGrid.RowEvents.CHANGED, function (e) { return _this.emptyRowDidChange(e); });
             this.rows.prepend(this.emptyRow);
         };
         Body.prototype.emptyRowDidChange = function (e) {
             var row = e.params.row;
-            row.valid = this._delegate.bodyValidateEmptyRow(row.model);
+            row.valid = this._delegate.bodyValidateModel(this, row.model);
         };
         Body.prototype.insertRow = function (model, index, items) {
             if (_.isUndefined(items)) {
@@ -287,6 +286,9 @@ var TSGrid;
             this.activate(row, cell);
         };
         Body.prototype.activate = function (row, cell) {
+            if (cell.column.getEditable() === false) {
+                return;
+            }
             if (this.activeRow !== row) {
                 var oldRow = this.activeRow;
                 this.activeRow = row;
@@ -301,13 +303,16 @@ var TSGrid;
                 this.changedCell(oldCell, cell);
             }
             if (cell.isActivated()) {
+                console.debug('enterEditMode');
                 cell.enterEditMode();
             }
             else {
+                console.debug('activate');
                 cell.activate();
             }
         };
         Body.prototype.changedRow = function (fromRow, toRow) {
+            var _this = this;
             if (fromRow) {
                 fromRow.setActive(false);
             }
@@ -315,15 +320,39 @@ var TSGrid;
                 toRow.setActive(true);
             }
             console.debug('fromRow', fromRow, 'toRow', toRow);
-            if (fromRow === this.emptyRow && this.emptyRow.valid) {
-                console.debug('Insert emptyrow');
-                var model = this.emptyRow.model;
-                this.models.add(model);
-                this.models.resort();
+            if (fromRow && fromRow !== this.emptyRow) {
+                fromRow.valid = this._delegate.bodyValidateModel(this, fromRow.model);
+                var shouldUpdate = this._delegate.bodyShouldUpdateModel(this, fromRow.model);
+                if (fromRow.valid && shouldUpdate) {
+                    fromRow.setLoading(true);
+                    this._delegate.bodyUpdateModel(this, fromRow.model).then(function (model) {
+                        fromRow.setLoading(false);
+                        _this._delegate.bodyAfterUpdateModel(_this, fromRow.model);
+                    });
+                }
+            }
+            if (fromRow && fromRow === this.emptyRow && this.emptyRow.valid) {
+                var rowModel = this.emptyRow.model;
+                this._delegate.bodyBeforeCreateModel(this, rowModel);
+                this.emptyRow.setLoading(true);
+                this._delegate.bodyCreateModel(this, rowModel).then(function (model) {
+                    _this.emptyRow.setLoading(false);
+                    _this.models.add(model);
+                    _this._delegate.bodyAfterCreateModel(_this, model);
+                    _this.focusEmptyRow();
+                });
             }
             this.events.trigger(TSGrid.BodyEvents.CHANGED_ROW, { fromRow: fromRow, toRow: toRow });
         };
+        Body.prototype.focusEmptyRow = function () {
+            this.activeRow = null;
+            this.activeCell = null;
+            var row = this.rows.get(0);
+            var cell = row.cells.get(0);
+            this.activate(row, cell);
+        };
         Body.prototype.changedCell = function (fromCell, toCell) {
+            console.debug('fromCell', fromCell, 'toCell', toCell);
             this.events.trigger(TSGrid.BodyEvents.CHANGED_CELL, { fromCell: fromCell, toCell: toCell });
         };
         Body.prototype.moveToNextCell = function (evt) {
@@ -345,7 +374,7 @@ var TSGrid;
             }
             if (cmd.enter() || cmd.left() || cmd.right() || cmd.up() || cmd.down() || cmd.shiftTab() || cmd.tab()) {
                 var l = this.columns.length;
-                var maxOffset = l * this.collection.length;
+                var maxOffset = l * this.rows.length;
                 if (cmd.up() || cmd.down() || cmd.enter()) {
                     m = i + (cmd.up() ? -1 : 1);
                     var row = this.rows.get(m);
@@ -474,7 +503,7 @@ var TSGrid;
             if (columnClassName) {
                 this.$el.addClass(columnClassName);
             }
-            if (this.getValidationEnabled() && this.model.isValid(this.column.getName()) === false) {
+            if (this.getValidationEnabled() && this.model.isValid(this.column.getName()) === false && this.model.isDirty(this.column.getName()) === true) {
                 this.$el.addClass('error');
             }
             else {
@@ -553,7 +582,7 @@ var TSGrid;
             else {
                 this.model.set(this.column.getName(), null);
             }
-            this.render();
+            this.events.trigger(TSGrid.CellEvents.CLEARED, { cell: this });
         };
         Cell.prototype.enterEditMode = function (withModelValue) {
             var _this = this;
@@ -709,6 +738,7 @@ var TSGrid;
     var CellEvents;
     (function (CellEvents) {
         CellEvents.CHANGED = 'cell:changed';
+        CellEvents.CLEARED = 'cell:cleared';
     })(CellEvents = TSGrid.CellEvents || (TSGrid.CellEvents = {}));
 })(TSGrid || (TSGrid = {}));
 var TSGrid;
@@ -1101,7 +1131,6 @@ var TSGrid;
             _super.call(this);
             this.tagName = 'tr';
             this.events = new TSCore.Events.EventEmitter();
-            this._validationEnabled = true;
             this.valid = false;
             this.columns = columns;
             this.setModel(model);
@@ -1115,13 +1144,14 @@ var TSGrid;
                 _this.cells.add(_this.makeCell(column));
             });
         };
-        Row.prototype.validationEnabled = function (validationEnabled) {
-            if (validationEnabled === void 0) { validationEnabled = true; }
-            this._validationEnabled = validationEnabled;
-            return this;
-        };
-        Row.prototype.getValidationEnabled = function () {
-            return this._validationEnabled;
+        Row.prototype.setLoading = function (loading) {
+            this._loading = loading;
+            if (this._loading) {
+                this.$el.addClass('loading');
+            }
+            else {
+                this.$el.removeClass('loading');
+            }
         };
         Row.prototype.setActive = function (active) {
             this._active = active;
@@ -1144,17 +1174,21 @@ var TSGrid;
             var cellType = column.getCellType();
             var cell = new cellType(column, this.model);
             cell.events.on(TSGrid.CellEvents.CHANGED, function (e) { return _this.cellDidChange(e); });
+            cell.events.on(TSGrid.CellEvents.CLEARED, function (e) { return _this.cellDidClear(e); });
             return cell;
         };
         Row.prototype.cellDidChange = function (e) {
             this.events.trigger(TSGrid.RowEvents.CHANGED, { row: this });
+            this.render();
+        };
+        Row.prototype.cellDidClear = function (e) {
+            this.render();
         };
         Row.prototype.render = function () {
-            var _this = this;
             this.$el.empty();
             var fragment = document.createDocumentFragment();
             this.cells.each(function (cell) {
-                cell.validationEnabled(_this.getValidationEnabled());
+                cell.validationEnabled(true);
                 fragment.appendChild(cell.render().el);
             });
             this.el.appendChild(fragment);
