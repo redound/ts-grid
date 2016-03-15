@@ -42,6 +42,8 @@ declare module TSGrid {
         column: TSGrid.Column;
     }
     interface IBodyDelegate {
+        bodyDefaultSortPredicateForModels(body: TSGrid.Body): any;
+        bodyDefaultSortDirectionForModels(body: TSGrid.Body): TSCore.Data.SortedListDirection;
         bodyModelForEmptyRow(body: TSGrid.Body): TSCore.App.Data.Model.ActiveModel;
         bodyPrimaryKeyForModels(body: TSGrid.Body): any;
         bodyBeforeCreateModel(body: TSGrid.Body, model: TSCore.App.Data.Model.ActiveModel): void;
@@ -69,7 +71,7 @@ declare module TSGrid {
         events: TSCore.Events.EventEmitter;
         constructor(delegate: IBodyDelegate, columns: TSCore.Data.List<Column>, collection: TSCore.Data.ModelCollection<TSCore.App.Data.Model.ActiveModel>, rowType?: IRow);
         initialize(): void;
-        defaultSortPredicate(): any;
+        getDelegate(): IBodyDelegate;
         protected addModels(evt: any): void;
         protected removeModels(evt: any): void;
         setGrid(grid: Grid): void;

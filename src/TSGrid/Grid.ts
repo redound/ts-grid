@@ -39,7 +39,7 @@ module TSGrid {
 
         public sort(sortPredicate: any, sortDirection: SortedListDirection) {
 
-            this._body.models.sort(sortPredicate, sortDirection);
+            this._body.models.setSortPredicate(sortPredicate, sortDirection);
             this.afterSort(sortPredicate, sortDirection);
         }
 
@@ -181,8 +181,8 @@ module TSGrid {
                         direction = SortedListDirection.DESCENDING;
                         break;
                     case SortedListDirection.DESCENDING:
-                        name = this._body.defaultSortPredicate();
-                        direction = SortedListDirection.ASCENDING;
+                        name = this._body.getDelegate().bodyDefaultSortPredicateForModels(this._body);
+                        direction = this._body.getDelegate().bodyDefaultSortDirectionForModels(this._body);
                         break;
                     default:
                         direction = SortedListDirection.ASCENDING;

@@ -140,7 +140,7 @@ var TSGrid;
             this.rows = new TSCore.Data.List();
             var models = this.collection.all();
             this.models = new TSCore.Data.SortedList(models, this._delegate.bodyPrimaryKeyForModels(this));
-            this.models.resort();
+            this.models.setSortPredicate(this._delegate.bodyDefaultSortPredicateForModels(this), this._delegate.bodyDefaultSortDirectionForModels(this));
             this.models.each(function (model) {
                 _this.rows.add(new _this.rowType(_this.columns, model));
             });
@@ -151,8 +151,8 @@ var TSGrid;
             this.models.events.on(TSCore.Data.SortedListEvents.REMOVE, function (evt) { return _this.removeRows(evt); });
             this.models.events.on(TSCore.Data.SortedListEvents.SORT, function (evt) { return _this.refresh(evt); });
         };
-        Body.prototype.defaultSortPredicate = function () {
-            return this._delegate.bodyPrimaryKeyForModels(this);
+        Body.prototype.getDelegate = function () {
+            return this._delegate;
         };
         Body.prototype.addModels = function (evt) {
             var _this = this;
@@ -905,7 +905,7 @@ var TSGrid;
             console.log('Initialize grid');
         };
         Grid.prototype.sort = function (sortPredicate, sortDirection) {
-            this._body.models.sort(sortPredicate, sortDirection);
+            this._body.models.setSortPredicate(sortPredicate, sortDirection);
             this.afterSort(sortPredicate, sortDirection);
         };
         Grid.prototype.afterSort = function (sortPredicate, sortDirection) {
@@ -1002,8 +1002,8 @@ var TSGrid;
                         direction = SortedListDirection.DESCENDING;
                         break;
                     case SortedListDirection.DESCENDING:
-                        name = this._body.defaultSortPredicate();
-                        direction = SortedListDirection.ASCENDING;
+                        name = this._body.getDelegate().bodyDefaultSortPredicateForModels(this._body);
+                        direction = this._body.getDelegate().bodyDefaultSortDirectionForModels(this._body);
                         break;
                     default:
                         direction = SortedListDirection.ASCENDING;

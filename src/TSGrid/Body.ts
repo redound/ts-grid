@@ -9,6 +9,8 @@ module TSGrid {
     }
 
     export interface IBodyDelegate {
+        bodyDefaultSortPredicateForModels(body: TSGrid.Body): any;
+        bodyDefaultSortDirectionForModels(body: TSGrid.Body): TSCore.Data.SortedListDirection;
         bodyModelForEmptyRow(body: TSGrid.Body): TSCore.App.Data.Model.ActiveModel;
         bodyPrimaryKeyForModels(body: TSGrid.Body): any;
         bodyBeforeCreateModel(body: TSGrid.Body, model: TSCore.App.Data.Model.ActiveModel): void;
@@ -80,7 +82,7 @@ module TSGrid {
             var models = this.collection.all();
             this.models = new TSCore.Data.SortedList<TSCore.App.Data.Model.ActiveModel>(models, this._delegate.bodyPrimaryKeyForModels(this));
 
-            this.models.resort();
+            this.models.setSortPredicate(this._delegate.bodyDefaultSortPredicateForModels(this), this._delegate.bodyDefaultSortDirectionForModels(this));
             this.models.each(model => {
 
                 this.rows.add(new this.rowType(
@@ -98,8 +100,8 @@ module TSGrid {
             this.models.events.on(TSCore.Data.SortedListEvents.SORT, evt => this.refresh(evt));
         }
 
-        public defaultSortPredicate(): any {
-            return this._delegate.bodyPrimaryKeyForModels(this);
+        public getDelegate() {
+            return this._delegate;
         }
 
         protected addModels(evt) {
