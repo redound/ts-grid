@@ -126,6 +126,7 @@ var TSGrid;
             _super.call(this);
             this.tagName = 'div';
             this.className = 'ts-grid-body';
+            this.cols = new TSCore.Data.List();
             this.rowType = TSGrid.Row;
             this.events = new TSCore.Events.EventEmitter();
             this._delegate = delegate;
@@ -150,6 +151,17 @@ var TSGrid;
             this.models.events.on(TSCore.Data.SortedListEvents.ADD, function (evt) { return _this.insertRows(evt); });
             this.models.events.on(TSCore.Data.SortedListEvents.REMOVE, function (evt) { return _this.removeRows(evt); });
             this.models.events.on(TSCore.Data.SortedListEvents.SORT, function (evt) { return _this.refresh(evt); });
+            this.columns.each(function (column) {
+                column.events.on(TSGrid.ColumnEvents.CHANGED_WIDTH, function (e) { return _this.columnChangedWidth(e); });
+            });
+        };
+        Body.prototype.columnChangedWidth = function (e) {
+            var column = e.params.column;
+            var columnIndex = this.columns.indexOf(column);
+            var col = this.cols.get(columnIndex);
+            if (col) {
+                col.width(column.getWidth());
+            }
         };
         Body.prototype.getDelegate = function () {
             return this._delegate;
@@ -247,16 +259,26 @@ var TSGrid;
             grid.events.trigger(TSGrid.TSGridEvents.REFRESH, { body: this });
         };
         Body.prototype.render = function () {
+            var _this = this;
             var grid = this.getGrid();
             this.$el.empty();
-            var $table = $('<table />');
+            this.$table = $('<table />');
             var $tbody = $('<tbody />');
-            $table.append($tbody);
+            this.$colgroup = $('<colgroup />');
+            this.cols.clear();
+            this.columns.each(function (column) {
+                var $col = $('<col />');
+                $col.css('width', column.getWidth());
+                _this.$colgroup.append($col);
+                _this.cols.add($col);
+            });
+            this.$table.append(this.$colgroup);
+            this.$table.append($tbody);
             this.rows.each(function (row) {
                 $tbody.append(row.render().$el);
             });
-            $table.attr('width', grid.getInnerWidth());
-            this.$el.append($table);
+            this.$table.attr('width', grid.getInnerWidth());
+            this.$el.append(this.$table);
             this.delegateEvents();
             return this;
         };
@@ -497,8 +519,6 @@ var TSGrid;
             var modelValue = getter ? getter(this.model) : this.model.get(this.column.getName());
             var value = formatter ? formatter(this.model) : modelValue;
             this.$el.html(value);
-            this.$el.attr('width', this.column.getWidth());
-            this.$el.css('max-width', this.column.getWidth());
             var columnClassName = this.column.getClassName();
             if (columnClassName) {
                 this.$el.addClass(columnClassName);
@@ -745,12 +765,14 @@ var TSGrid;
 (function (TSGrid) {
     var Column = (function () {
         function Column() {
+            this._resizable = false;
             this._renderable = true;
             this._editOnInput = false;
             this._editable = false;
             this._sortable = false;
             this._allowClear = false;
             this._cellType = TSGrid.Cell;
+            this.events = new TSCore.Events.EventEmitter();
             this._uniqId = parseInt(_.uniqueId());
         }
         Column.prototype.className = function (className) {
@@ -769,8 +791,32 @@ var TSGrid;
         Column.prototype.getGrid = function () {
             return this._grid;
         };
+        Column.prototype.resizable = function (resizable) {
+            if (resizable === void 0) { resizable = true; }
+            this._resizable = resizable;
+            return this;
+        };
+        Column.prototype.getResizable = function () {
+            return this._resizable;
+        };
+        Column.prototype.minWidth = function (minWidth) {
+            this._minWidth = minWidth;
+            return this;
+        };
+        Column.prototype.getMinWidth = function () {
+            return this._minWidth;
+        };
+        Column.prototype.maxWidth = function (maxWidth) {
+            this._maxWidth = maxWidth;
+            return this;
+        };
+        Column.prototype.getMaxWidth = function () {
+            return this._maxWidth;
+        };
         Column.prototype.width = function (width) {
+            var oldWidth = this._width;
             this._width = width;
+            this.events.trigger(TSGrid.ColumnEvents.CHANGED_WIDTH, { column: this, fromWidth: oldWidth, toWidth: width });
             return this;
         };
         Column.prototype.getWidth = function () {
@@ -783,12 +829,15 @@ var TSGrid;
         Column.prototype.getName = function () {
             return this._name;
         };
-        Column.prototype.label = function (label) {
-            this._label = label;
+        Column.prototype.titleFormatter = function (title) {
+            this._titleFormatter = title;
             return this;
         };
-        Column.prototype.getLabel = function () {
-            return this._label;
+        Column.prototype.getTitleFormatter = function () {
+            return this._titleFormatter;
+        };
+        Column.prototype.getTitle = function () {
+            return this._titleFormatter(this);
         };
         Column.prototype.renderable = function (renderable) {
             this._renderable = renderable;
@@ -887,6 +936,92 @@ var TSGrid;
 })(TSGrid || (TSGrid = {}));
 var TSGrid;
 (function (TSGrid) {
+    var ColumnEvents;
+    (function (ColumnEvents) {
+        ColumnEvents.CHANGED_WIDTH = 'changedWidth';
+    })(ColumnEvents = TSGrid.ColumnEvents || (TSGrid.ColumnEvents = {}));
+})(TSGrid || (TSGrid = {}));
+var TSGrid;
+(function (TSGrid) {
+    var ColumnResizer = (function (_super) {
+        __extends(ColumnResizer, _super);
+        function ColumnResizer() {
+            _super.call(this);
+            this.tagName = 'div';
+            this.className = 'manualColumnResizer';
+            this.viewEvents = {
+                "mousedown": "mousedown",
+                "mouseup": "mouseup"
+            };
+            this.events = new TSCore.Events.EventEmitter();
+            this._active = false;
+            this.initialize();
+        }
+        ColumnResizer.prototype.mousedown = function () {
+            this.events.trigger(TSGrid.ColumnResizerEvents.MOUSEDOWN, { columnResizer: this });
+        };
+        ColumnResizer.prototype.mouseup = function () {
+            this.events.trigger(TSGrid.ColumnResizerEvents.MOUSEUP, { columnResizer: this });
+        };
+        ColumnResizer.prototype.setActive = function (active) {
+            if (this._active !== active) {
+                if (active) {
+                    this.$el.addClass('active');
+                }
+                else {
+                    this.$el.removeClass('active');
+                }
+            }
+            this._active = active;
+            return this;
+        };
+        ColumnResizer.prototype.getActive = function () {
+            return this._active;
+        };
+        return ColumnResizer;
+    })(TSCore.App.UI.View);
+    TSGrid.ColumnResizer = ColumnResizer;
+})(TSGrid || (TSGrid = {}));
+var TSGrid;
+(function (TSGrid) {
+    var ColumnResizerEvents;
+    (function (ColumnResizerEvents) {
+        ColumnResizerEvents.MOUSEUP = 'mouseup';
+        ColumnResizerEvents.MOUSEDOWN = 'mousedown';
+    })(ColumnResizerEvents = TSGrid.ColumnResizerEvents || (TSGrid.ColumnResizerEvents = {}));
+})(TSGrid || (TSGrid = {}));
+var TSGrid;
+(function (TSGrid) {
+    var ColumnResizerGuide = (function (_super) {
+        __extends(ColumnResizerGuide, _super);
+        function ColumnResizerGuide() {
+            _super.call(this);
+            this.tagName = 'div';
+            this.className = 'manualColumnResizerGuide';
+            this._active = false;
+            this.initialize();
+        }
+        ColumnResizerGuide.prototype.setActive = function (active) {
+            if (this._active !== active) {
+                if (active) {
+                    this.$el.addClass('active');
+                }
+                else {
+                    this.$el.removeClass('active');
+                }
+            }
+            this._active = active;
+            return this;
+        };
+        ColumnResizerGuide.prototype.getActive = function () {
+            return this._active;
+        };
+        return ColumnResizerGuide;
+    })(TSCore.App.UI.View);
+    TSGrid.ColumnResizerGuide = ColumnResizerGuide;
+})(TSGrid || (TSGrid = {}));
+var TSGrid;
+(function (TSGrid) {
     var SortedListDirection = TSCore.Data.SortedListDirection;
     var Grid = (function (_super) {
         __extends(Grid, _super);
@@ -895,14 +1030,78 @@ var TSGrid;
             this.tagName = 'div';
             this.className = 'ts-grid';
             this.events = new TSCore.Events.EventEmitter();
+            this._columnResizer = new TSGrid.ColumnResizer;
+            this._columnResizerGuide = new TSGrid.ColumnResizerGuide;
             this.setHeader(header);
             this.setBody(body);
             this.setColumns(columns);
             this.initialize();
         }
         Grid.prototype.initialize = function () {
+            var _this = this;
             _super.prototype.initialize.call(this);
-            console.log('Initialize grid');
+            $(document).on('mousemove', function (e) { return _this.documentOnMouseMove(e); });
+        };
+        Grid.prototype.documentOnMouseMove = function (e) {
+            this.mousePageOffsetX = e.pageX;
+            if (this._columnResizer.getActive()) {
+                this.positionColumnResizer(this.mousePageOffsetX);
+            }
+        };
+        Grid.prototype.positionColumnResizer = function (offsetX) {
+            var bodyOuterHeight = this._body.$el.height();
+            var bodyOffset = this._body.$el.offset();
+            var columnResizerOffset = this._columnResizer.$el.offset();
+            var columnResizerWidth = this._columnResizer.$el.width();
+            var columnResizerGuideOuterWidth = this._columnResizerGuide.$el.outerWidth();
+            var guideCorrection = columnResizerWidth - columnResizerGuideOuterWidth;
+            this._columnResizer.$el.offset({
+                top: columnResizerOffset.top,
+                left: offsetX ? offsetX : columnResizerOffset.left
+            });
+            this._columnResizerGuide.$el.offset({
+                top: bodyOffset.top,
+                left: (offsetX ? offsetX : columnResizerOffset.left) + guideCorrection
+            });
+            this._columnResizerGuide.$el.height(bodyOuterHeight);
+        };
+        Grid.prototype.columnResizerOnMouseUp = function (e) {
+            this._columnResizer.setActive(false);
+            this._columnResizerGuide.setActive(false);
+            this._columnResizer.remove();
+            this.createColumnResizer();
+            var headerCell = this._resizeHeaderCell;
+            this._resizeHeaderCell = null;
+            var minWidth = headerCell.column.getMinWidth();
+            var maxWidth = headerCell.column.getMaxWidth();
+            var width = headerCell.column.getWidth();
+            var calculatedWidth = width + (this.mousePageOffsetX - this.columnResizeStartOffsetX);
+            var newWidth = Math.min(Math.max(calculatedWidth, minWidth), maxWidth);
+            if (headerCell.column.getResizable()) {
+                headerCell.column.width(newWidth);
+            }
+        };
+        Grid.prototype.createColumnResizer = function () {
+            var _this = this;
+            if (this._columnResizer) {
+                this._columnResizer.remove();
+            }
+            if (this._columnResizerGuide) {
+                this._columnResizerGuide.remove();
+            }
+            this._columnResizer = new TSGrid.ColumnResizer;
+            this._columnResizerGuide = new TSGrid.ColumnResizerGuide;
+            this._columnResizer.events.on(TSGrid.ColumnResizerEvents.MOUSEDOWN, function (e) { return _this.columnResizerOnMouseDown(e); });
+            this._columnResizer.events.on(TSGrid.ColumnResizerEvents.MOUSEUP, function (e) { return _this.columnResizerOnMouseUp(e); });
+            this.$el.append(this._columnResizer.render().$el);
+            this.$el.append(this._columnResizerGuide.render().$el);
+        };
+        Grid.prototype.columnResizerOnMouseDown = function (e) {
+            this.columnResizeStartOffsetX = this._columnResizer.$el.offset().left;
+            this._columnResizer.setActive(true);
+            this._columnResizerGuide.setActive(true);
+            this._resizeHeaderCell = this._lastHeaderCell;
+            this.positionColumnResizer();
         };
         Grid.prototype.sort = function (sortPredicate, sortDirection) {
             this._body.models.setSortPredicate(sortPredicate, sortDirection);
@@ -940,15 +1139,18 @@ var TSGrid;
             return this._body;
         };
         Grid.prototype.setColumns = function (columns) {
+            this._columns = columns;
+            this.calculateWidth();
+            return this;
+        };
+        Grid.prototype.calculateWidth = function () {
             var _this = this;
             var width = 0;
-            columns.each(function (column) {
+            this._columns.each(function (column) {
                 column.setGrid(_this);
                 width += column.getWidth();
             });
             this._width = width;
-            this._columns = columns;
-            return this;
         };
         Grid.prototype.getColumns = function () {
             return this._columns;
@@ -974,6 +1176,7 @@ var TSGrid;
                 this.listenHeaderCells();
             }
             this.$el.append(this._body.render().$el);
+            this.createColumnResizer();
             this.delegateEvents();
             this.events.trigger(TSGrid.TSGridEvents.RENDERED);
             return this;
@@ -983,7 +1186,16 @@ var TSGrid;
             var headerRow = this._header.row;
             headerRow.cells.each(function (cell) {
                 cell.events.on(TSGrid.HeaderCellEvents.CLICK, function (e) { return _this.headerCellOnClick(e); });
+                cell.events.on(TSGrid.HeaderCellEvents.MOUSEENTER, function (e) { return _this.headerCellOnMouseEnter(e); });
+                cell.events.on(TSGrid.HeaderCellEvents.MOUSELEAVE, function (e) { return _this.headerCellOnMouseLeave(e); });
+                cell.column.events.on(TSGrid.ColumnEvents.CHANGED_WIDTH, function (e) { return _this.columnChangedWidth(e); });
             });
+        };
+        Grid.prototype.columnChangedWidth = function (e) {
+            this.calculateWidth();
+            this._header.$table.attr('width', this.getInnerWidth());
+            this._body.$table.attr('width', this.getInnerWidth());
+            this.events.trigger(TSGrid.TSGridEvents.CHANGED_WIDTH, { grid: this });
         };
         Grid.prototype.headerCellOnClick = function (e) {
             var headerRow = this._header.row;
@@ -991,6 +1203,27 @@ var TSGrid;
             if (headerCell.column.getSortable()) {
                 this.sortName(headerCell.column.getName());
             }
+        };
+        Grid.prototype.headerCellOnMouseEnter = function (e) {
+            var headerCell = e.params.headerCell;
+            this._lastHeaderCell = headerCell;
+            this.positionColumnResizerAtHeaderCell(headerCell);
+        };
+        Grid.prototype.headerCellOnMouseLeave = function (e) {
+            var headerCell = e.params.headerCell;
+        };
+        Grid.prototype.positionColumnResizerAtHeaderCell = function (headerCell) {
+            if (this._columnResizer.getActive()) {
+                return;
+            }
+            var headerCellOuterHeight = headerCell.$el.outerHeight();
+            var headerCellOffset = headerCell.$el.offset();
+            var columnResizerWidth = this._columnResizer.$el.width();
+            this._columnResizer.$el.offset({
+                top: headerCellOffset.top,
+                left: headerCellOffset.left + headerCell.column.getWidth() - columnResizerWidth + 1
+            });
+            this._columnResizer.$el.height(headerCellOuterHeight);
         };
         Grid.prototype.sortName = function (name) {
             var sortPredicate = this._body.models.getSortPredicate();
@@ -1033,12 +1266,32 @@ var TSGrid;
             _super.call(this);
             this.tagName = 'div';
             this.className = 'ts-grid-header';
+            this.viewEvents = {
+                "dragstart": "dragstart"
+            };
+            this.cols = new TSCore.Data.List();
             this.columns = columns;
             this.initialize();
         }
         Header.prototype.initialize = function () {
+            var _this = this;
             _super.prototype.initialize.call(this);
             this.row = new TSGrid.HeaderRow(this.columns);
+            this.columns.each(function (column) {
+                column.events.on(TSGrid.ColumnEvents.CHANGED_WIDTH, function (e) { return _this.columnChangedWidth(e); });
+            });
+        };
+        Header.prototype.columnChangedWidth = function (e) {
+            var column = e.params.column;
+            var columnIndex = this.columns.indexOf(column);
+            var col = this.cols.get(columnIndex);
+            if (col) {
+                col.width(column.getWidth());
+            }
+        };
+        Header.prototype.dragstart = function (e) {
+            e.preventDefault();
+            e.stopPropagation();
         };
         Header.prototype.setGrid = function (grid) {
             this._grid = grid;
@@ -1048,13 +1301,23 @@ var TSGrid;
             return this._grid;
         };
         Header.prototype.render = function () {
+            var _this = this;
             var grid = this.getGrid();
-            var $table = $('<table />');
+            this.$table = $('<table />');
+            this.$colgroup = $('<colgroup />');
+            this.cols.clear();
+            this.columns.each(function (column) {
+                var $col = $('<col />');
+                $col.css('width', column.getWidth());
+                _this.$colgroup.append($col);
+                _this.cols.add($col);
+            });
             var $thead = $('<thead />');
-            $table.append($thead);
+            this.$table.append(this.$colgroup);
+            this.$table.append($thead);
             $thead.append(this.row.render().$el);
-            $table.attr('width', grid.getInnerWidth());
-            this.$el.append($table);
+            this.$table.attr('width', grid.getInnerWidth());
+            this.$el.append(this.$table);
             this.delegateEvents();
             return this;
         };
@@ -1070,6 +1333,8 @@ var TSGrid;
             _super.call(this);
             this.tagName = 'th';
             this.viewEvents = {
+                "mouseenter": "mouseenter",
+                "mouseleave": "mouseleave",
                 "click a": "click"
             };
             this.events = new TSCore.Events.EventEmitter();
@@ -1077,8 +1342,22 @@ var TSGrid;
             this.column = column;
             this.initialize();
         }
+        HeaderCell.prototype.initialize = function () {
+            var _this = this;
+            _super.prototype.initialize.call(this);
+            this.column.events.on(TSGrid.ColumnEvents.CHANGED_WIDTH, function (e) { return _this.columnChangedWidth(e); });
+        };
+        HeaderCell.prototype.columnChangedWidth = function (e) {
+            this.render();
+        };
         HeaderCell.prototype.click = function () {
             this.events.trigger(TSGrid.HeaderCellEvents.CLICK, { headerCell: this });
+        };
+        HeaderCell.prototype.mouseenter = function () {
+            this.events.trigger(TSGrid.HeaderCellEvents.MOUSEENTER, { headerCell: this });
+        };
+        HeaderCell.prototype.mouseleave = function () {
+            this.events.trigger(TSGrid.HeaderCellEvents.MOUSELEAVE, { headerCell: this });
         };
         HeaderCell.prototype.setSortDirection = function (direction) {
             if (this.sortDirection !== direction) {
@@ -1090,10 +1369,10 @@ var TSGrid;
             this.$el.empty();
             var $label;
             if (this.column.getSortable()) {
-                $label = $('<a href="javascript:void(0)">' + this.column.getLabel() + '</a>');
+                $label = $('<a href="javascript:void(0)">' + this.column.getTitle() + '</a>');
             }
             else {
-                $label = document.createTextNode(this.column.getLabel());
+                $label = document.createTextNode(this.column.getTitle());
             }
             this.$el.removeClass('asc');
             this.$el.removeClass('desc');
@@ -1108,7 +1387,6 @@ var TSGrid;
             if (this.column.getSortable()) {
                 this.$el.addClass('sortable');
             }
-            this.$el.attr('width', this.column.getWidth());
             this.delegateEvents();
             return this;
         };
@@ -1121,6 +1399,8 @@ var TSGrid;
     var HeaderCellEvents;
     (function (HeaderCellEvents) {
         HeaderCellEvents.CLICK = 'click';
+        HeaderCellEvents.MOUSEENTER = 'mouseenter';
+        HeaderCellEvents.MOUSELEAVE = 'mouseleave';
     })(HeaderCellEvents = TSGrid.HeaderCellEvents || (TSGrid.HeaderCellEvents = {}));
 })(TSGrid || (TSGrid = {}));
 var TSGrid;
@@ -1286,6 +1566,7 @@ var TSGrid;
         TSGridEvents.ERROR = "tsGrid:error";
         TSGridEvents.NEXT = "tsGrid:next";
         TSGridEvents.NAVIGATE = "tsGrid:navigate";
+        TSGridEvents.CHANGED_WIDTH = "tsGrid:changedWidth";
         TSGridEvents.CLICK = "tsGrid:click";
     })(TSGridEvents = TSGrid.TSGridEvents || (TSGrid.TSGridEvents = {}));
 })(TSGrid || (TSGrid = {}));

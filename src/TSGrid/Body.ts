@@ -39,6 +39,8 @@ module TSGrid {
          */
         public columns:TSCore.Data.List<Column>;
 
+        public cols: TSCore.Data.List<JQuery> = new TSCore.Data.List<JQuery>();
+
         public rowType:IRow = Row;
 
         public rows:TSCore.Data.List<Row>;
@@ -50,6 +52,10 @@ module TSGrid {
         public emptyRow:Row;
 
         public _grid:Grid;
+
+        public $table: JQuery;
+
+        public $colgroup: JQuery;
 
         protected _delegate:IBodyDelegate;
 
@@ -98,6 +104,22 @@ module TSGrid {
             this.models.events.on(TSCore.Data.SortedListEvents.ADD, evt => this.insertRows(evt));
             this.models.events.on(TSCore.Data.SortedListEvents.REMOVE, evt => this.removeRows(evt));
             this.models.events.on(TSCore.Data.SortedListEvents.SORT, evt => this.refresh(evt));
+
+            this.columns.each(column => {
+                column.events.on(TSGrid.ColumnEvents.CHANGED_WIDTH, e => this.columnChangedWidth(e));
+            });
+        }
+
+        protected columnChangedWidth(e) {
+
+            var column = e.params.column;
+            var columnIndex = this.columns.indexOf(column);
+
+            var col = this.cols.get(columnIndex);
+
+            if (col) {
+                col.width(column.getWidth());
+            }
         }
 
         public getDelegate() {
@@ -290,18 +312,27 @@ module TSGrid {
 
             this.$el.empty();
 
-            var $table = $('<table />');
+            this.$table = $('<table />');
             var $tbody = $('<tbody />');
+            this.$colgroup = $('<colgroup />');
+            this.cols.clear();
+            this.columns.each(column => {
+                var $col = $('<col />');
+                $col.css('width', column.getWidth());
+                this.$colgroup.append($col);
+                this.cols.add($col);
+            });
 
-            $table.append($tbody);
+            this.$table.append(this.$colgroup);
+            this.$table.append($tbody);
 
             this.rows.each(row => {
                 $tbody.append(row.render().$el);
             });
 
-            $table.attr('width', grid.getInnerWidth());
+            this.$table.attr('width', grid.getInnerWidth());
 
-            this.$el.append($table);
+            this.$el.append(this.$table);
 
             this.delegateEvents();
 

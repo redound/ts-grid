@@ -8,11 +8,17 @@ module TSGrid {
 
         protected _grid: Grid;
 
+        protected _resizable: boolean = false;
+
+        protected _minWidth: number;
+
+        protected _maxWidth: number;
+
         protected _width: number;
 
         protected _name: string;
 
-        protected _label: string;
+        protected _titleFormatter: any;
 
         protected _renderable: boolean = true;
 
@@ -40,6 +46,8 @@ module TSGrid {
 
         protected _className: string;
 
+        public events: TSCore.Events.EventEmitter = new TSCore.Events.EventEmitter();
+
         public constructor() {
 
             this._uniqId = parseInt(<any>_.uniqueId());
@@ -66,8 +74,37 @@ module TSGrid {
             return this._grid;
         }
 
+        public resizable(resizable: boolean = true): this {
+            this._resizable = resizable;
+            return this;
+        }
+
+        public getResizable(): boolean {
+            return this._resizable;
+        }
+
+        public minWidth(minWidth: number): this {
+            this._minWidth = minWidth;
+            return this;
+        }
+
+        public getMinWidth(): number {
+            return this._minWidth;
+        }
+
+        public maxWidth(maxWidth: number): this {
+            this._maxWidth = maxWidth;
+            return this;
+        }
+
+        public getMaxWidth(): number {
+            return this._maxWidth;
+        }
+
         public width(width: number): this {
+            var oldWidth = this._width;
             this._width = width;
+            this.events.trigger(TSGrid.ColumnEvents.CHANGED_WIDTH, { column: this, fromWidth: oldWidth, toWidth: width });
             return this;
         }
 
@@ -84,13 +121,17 @@ module TSGrid {
             return this._name;
         }
 
-        public label(label: string): this {
-            this._label = label;
+        public titleFormatter(title: any): this {
+            this._titleFormatter = title;
             return this;
         }
 
-        public getLabel(): string {
-            return this._label;
+        public getTitleFormatter(): any {
+            return this._titleFormatter;
+        }
+
+        public getTitle(): string {
+            return this._titleFormatter(this);
         }
 
         public renderable(renderable: boolean): this {

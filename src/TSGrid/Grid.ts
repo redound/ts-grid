@@ -17,6 +17,37 @@ module TSGrid {
 
         public events: TSCore.Events.EventEmitter = new TSCore.Events.EventEmitter();
 
+        /**
+         * ColumnResizer
+         * @type {TSGrid.ColumnResizer}
+         * @private
+         */
+        protected _columnResizer: ColumnResizer = new ColumnResizer;
+
+        /**
+         * ColumnResizerGuide
+         * @type {TSGrid.ColumnResizerGuide}
+         * @private
+         */
+        protected _columnResizerGuide: ColumnResizerGuide = new ColumnResizerGuide;
+
+        /**
+         * MousePageOffsetX (ColumnResizer)
+         */
+        public mousePageOffsetX: number;
+
+        /**
+         * MousePageOffset (ColumnResizer)
+         */
+        public columnResizeStartOffsetX: number;
+
+        /**
+         * LastHeaderCell (ColumnResizer)
+         */
+        protected _lastHeaderCell: TSGrid.HeaderCell;
+
+        protected _resizeHeaderCell: TSGrid.HeaderCell;
+
         public constructor(header: Header, body: Body, columns: TSCore.Data.List<Column>) {
 
             super();
@@ -34,7 +65,86 @@ module TSGrid {
 
             super.initialize();
 
-            console.log('Initialize grid');
+            $(document).on('mousemove', e => this.documentOnMouseMove(e));
+        }
+
+        protected documentOnMouseMove(e) {
+
+            this.mousePageOffsetX = e.pageX;
+
+            if (this._columnResizer.getActive()) {
+                this.positionColumnResizer(this.mousePageOffsetX);
+            }
+        }
+
+        protected positionColumnResizer(offsetX?: number) {
+
+            var bodyOuterHeight = this._body.$el.height();
+            var bodyOffset = this._body.$el.offset();
+            var columnResizerOffset = this._columnResizer.$el.offset();
+            var columnResizerWidth = this._columnResizer.$el.width();
+            var columnResizerGuideOuterWidth = this._columnResizerGuide.$el.outerWidth();
+            var guideCorrection = columnResizerWidth - columnResizerGuideOuterWidth;
+
+            this._columnResizer.$el.offset({
+                top: columnResizerOffset.top,
+                left: offsetX ? offsetX : columnResizerOffset.left
+            });
+
+            this._columnResizerGuide.$el.offset({
+                top: bodyOffset.top,
+                left: (offsetX ? offsetX : columnResizerOffset.left) + guideCorrection
+            });
+
+            this._columnResizerGuide.$el.height(bodyOuterHeight);
+        }
+
+        protected columnResizerOnMouseUp(e) {
+
+            this._columnResizer.setActive(false);
+            this._columnResizerGuide.setActive(false);
+            this._columnResizer.remove();
+            this.createColumnResizer();
+
+            var headerCell = this._resizeHeaderCell;
+            this._resizeHeaderCell = null;
+
+            var minWidth = headerCell.column.getMinWidth();
+            var maxWidth = headerCell.column.getMaxWidth();
+            var width = headerCell.column.getWidth();
+            var calculatedWidth = width + (this.mousePageOffsetX - this.columnResizeStartOffsetX);
+            var newWidth = Math.min(Math.max(calculatedWidth, minWidth), maxWidth);
+
+            if (headerCell.column.getResizable()) {
+                headerCell.column.width(newWidth);
+            }
+        }
+
+        protected createColumnResizer() {
+
+            if (this._columnResizer) {
+                this._columnResizer.remove();
+            }
+
+            if (this._columnResizerGuide) {
+                this._columnResizerGuide.remove();
+            }
+
+            this._columnResizer = new TSGrid.ColumnResizer;
+            this._columnResizerGuide = new TSGrid.ColumnResizerGuide;
+            this._columnResizer.events.on(TSGrid.ColumnResizerEvents.MOUSEDOWN, e => this.columnResizerOnMouseDown(e));
+            this._columnResizer.events.on(TSGrid.ColumnResizerEvents.MOUSEUP, e => this.columnResizerOnMouseUp(e));
+            this.$el.append(this._columnResizer.render().$el);
+            this.$el.append(this._columnResizerGuide.render().$el);
+        }
+
+        protected columnResizerOnMouseDown(e) {
+
+            this.columnResizeStartOffsetX = this._columnResizer.$el.offset().left;
+            this._columnResizer.setActive(true);
+            this._columnResizerGuide.setActive(true);
+            this._resizeHeaderCell = this._lastHeaderCell;
+            this.positionColumnResizer();
         }
 
         public sort(sortPredicate: any, sortDirection: SortedListDirection) {
@@ -83,14 +193,18 @@ module TSGrid {
         }
 
         public setColumns(columns: TSCore.Data.List<Column>): this {
+            this._columns = columns;
+            this.calculateWidth();
+            return this;
+        }
+
+        public calculateWidth() {
             var width = 0;
-            columns.each(column => {
+            this._columns.each(column => {
                 column.setGrid(this);
                 width += column.getWidth()
             });
             this._width = width;
-            this._columns = columns;
-            return this;
         }
 
         public getColumns(): TSCore.Data.List<Column> {
@@ -141,6 +255,8 @@ module TSGrid {
 
             this.$el.append(this._body.render().$el);
 
+            this.createColumnResizer();
+
             this.delegateEvents();
 
             this.events.trigger(TSGridEvents.RENDERED);
@@ -154,7 +270,18 @@ module TSGrid {
 
             headerRow.cells.each(cell => {
                 cell.events.on(HeaderCellEvents.CLICK, e => this.headerCellOnClick(e));
+                cell.events.on(HeaderCellEvents.MOUSEENTER, e => this.headerCellOnMouseEnter(e));
+                cell.events.on(HeaderCellEvents.MOUSELEAVE, e => this.headerCellOnMouseLeave(e));
+                cell.column.events.on(TSGrid.ColumnEvents.CHANGED_WIDTH, e => this.columnChangedWidth(e));
             });
+        }
+
+        protected columnChangedWidth(e) {
+
+            this.calculateWidth();
+            this._header.$table.attr('width', this.getInnerWidth());
+            this._body.$table.attr('width', this.getInnerWidth());
+            this.events.trigger(TSGridEvents.CHANGED_WIDTH, { grid: this });
         }
 
         protected headerCellOnClick(e) {
@@ -165,6 +292,38 @@ module TSGrid {
             if (headerCell.column.getSortable()) {
                 this.sortName(headerCell.column.getName());
             }
+        }
+
+        protected headerCellOnMouseEnter(e) {
+
+            var headerCell: TSGrid.HeaderCell = e.params.headerCell;
+            this._lastHeaderCell = headerCell;
+            this.positionColumnResizerAtHeaderCell(headerCell);
+        }
+
+        protected headerCellOnMouseLeave(e) {
+
+            var headerCell: TSGrid.HeaderCell = e.params.headerCell;
+        }
+
+        protected positionColumnResizerAtHeaderCell(headerCell: TSGrid.HeaderCell) {
+
+            if (this._columnResizer.getActive()) {
+                return;
+            }
+
+            var headerCellOuterHeight = headerCell.$el.outerHeight();
+            var headerCellOffset = headerCell.$el.offset();
+            var columnResizerWidth = this._columnResizer.$el.width();
+
+            // Position
+            this._columnResizer.$el.offset({
+                top: headerCellOffset.top,
+                left: headerCellOffset.left + headerCell.column.getWidth() - columnResizerWidth + 1
+            });
+
+            // Correct height
+            this._columnResizer.$el.height(headerCellOuterHeight);
         }
 
         protected sortName(name: string) {

@@ -6,11 +6,21 @@ module TSGrid {
 
         public className: string = 'ts-grid-header';
 
+        public viewEvents: any = {
+            "dragstart": "dragstart"
+        };
+
         public columns: TSCore.Data.List<Column>;
+
+        public cols: TSCore.Data.List<JQuery> = new TSCore.Data.List<JQuery>();
 
         public row: HeaderRow;
 
         public _grid: Grid;
+
+        public $table: JQuery;
+
+        public $colgroup: JQuery;
 
         public constructor(columns: TSCore.Data.List<Column>) {
 
@@ -26,6 +36,33 @@ module TSGrid {
             super.initialize();
 
             this.row = new HeaderRow(this.columns);
+
+            this.columns.each(column => {
+                column.events.on(TSGrid.ColumnEvents.CHANGED_WIDTH, e => this.columnChangedWidth(e));
+            });
+        }
+
+        protected columnChangedWidth(e) {
+
+            var column = e.params.column;
+            var columnIndex = this.columns.indexOf(column);
+
+            var col = this.cols.get(columnIndex);
+
+            if (col) {
+                col.width(column.getWidth());
+            }
+        }
+
+        /**
+         * Prevent columnResizer to cause
+         * dragstart on all elements inside the header
+         * @param e
+         */
+        protected dragstart(e) {
+
+            e.preventDefault();
+            e.stopPropagation();
         }
 
         public setGrid(grid: Grid): this {
@@ -41,14 +78,23 @@ module TSGrid {
 
             var grid = this.getGrid();
 
-            var $table = $('<table />');
+            this.$table = $('<table />');
+            this.$colgroup = $('<colgroup />');
+            this.cols.clear();
+            this.columns.each(column => {
+                var $col = $('<col />');
+                $col.css('width', column.getWidth());
+                this.$colgroup.append($col);
+                this.cols.add($col);
+            });
             var $thead = $('<thead />');
-            $table.append($thead);
+            this.$table.append(this.$colgroup);
+            this.$table.append($thead);
             $thead.append(this.row.render().$el);
 
-            $table.attr('width', grid.getInnerWidth());
+            this.$table.attr('width', grid.getInnerWidth());
 
-            this.$el.append($table);
+            this.$el.append(this.$table);
 
             this.delegateEvents();
             return this;

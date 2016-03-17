@@ -137,8 +137,7 @@ module TSGrid {
             var value = formatter ? formatter(this.model) : modelValue;
 
             this.$el.html(value);
-            this.$el.attr('width', this.column.getWidth());
-            this.$el.css('max-width', this.column.getWidth());
+
 
             var columnClassName = this.column.getClassName();
             if (columnClassName) {

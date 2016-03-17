@@ -61,16 +61,20 @@ declare module TSGrid {
         activeRow: Row;
         activeCell: Cell;
         columns: TSCore.Data.List<Column>;
+        cols: TSCore.Data.List<JQuery>;
         rowType: IRow;
         rows: TSCore.Data.List<Row>;
         models: TSCore.Data.SortedList<TSCore.App.Data.Model.ActiveModel>;
         collection: TSCore.Data.ModelCollection<TSCore.App.Data.Model.ActiveModel>;
         emptyRow: Row;
         _grid: Grid;
+        $table: JQuery;
+        $colgroup: JQuery;
         protected _delegate: IBodyDelegate;
         events: TSCore.Events.EventEmitter;
         constructor(delegate: IBodyDelegate, columns: TSCore.Data.List<Column>, collection: TSCore.Data.ModelCollection<TSCore.App.Data.Model.ActiveModel>, rowType?: IRow);
         initialize(): void;
+        protected columnChangedWidth(e: any): void;
         getDelegate(): IBodyDelegate;
         protected addModels(evt: any): void;
         protected removeModels(evt: any): void;
@@ -176,9 +180,12 @@ declare module TSGrid {
     class Column {
         protected _uniqId: number;
         protected _grid: Grid;
+        protected _resizable: boolean;
+        protected _minWidth: number;
+        protected _maxWidth: number;
         protected _width: number;
         protected _name: string;
-        protected _label: string;
+        protected _titleFormatter: any;
         protected _renderable: boolean;
         protected _editOnInput: boolean;
         protected _editable: boolean;
@@ -192,18 +199,26 @@ declare module TSGrid {
         protected _formatter: any;
         protected _cellType: ICell;
         protected _className: string;
+        events: TSCore.Events.EventEmitter;
         constructor();
         className(className: string): this;
         getClassName(): string;
         getId(): number;
         setGrid(grid: Grid): void;
         getGrid(): Grid;
+        resizable(resizable?: boolean): this;
+        getResizable(): boolean;
+        minWidth(minWidth: number): this;
+        getMinWidth(): number;
+        maxWidth(maxWidth: number): this;
+        getMaxWidth(): number;
         width(width: number): this;
         getWidth(): number;
         name(name: string): this;
         getName(): string;
-        label(label: string): this;
-        getLabel(): string;
+        titleFormatter(title: any): this;
+        getTitleFormatter(): any;
+        getTitle(): string;
         renderable(renderable: boolean): this;
         getRenderable(): boolean;
         editable(editable?: boolean): this;
@@ -231,6 +246,39 @@ declare module TSGrid {
         getFormatter(): any;
     }
 }
+declare module TSGrid.ColumnEvents {
+    const CHANGED_WIDTH: string;
+}
+declare module TSGrid {
+    class ColumnResizer extends TSCore.App.UI.View {
+        tagName: string;
+        className: string;
+        viewEvents: any;
+        events: TSCore.Events.EventEmitter;
+        protected _active: boolean;
+        constructor();
+        protected mousedown(): void;
+        protected mouseup(): void;
+        setActive(active: boolean): this;
+        getActive(): boolean;
+    }
+}
+declare module TSGrid {
+    module ColumnResizerEvents {
+        const MOUSEUP: string;
+        const MOUSEDOWN: string;
+    }
+}
+declare module TSGrid {
+    class ColumnResizerGuide extends TSCore.App.UI.View {
+        tagName: string;
+        className: string;
+        protected _active: boolean;
+        constructor();
+        setActive(active: boolean): this;
+        getActive(): boolean;
+    }
+}
 declare module TSGrid {
     import SortedListDirection = TSCore.Data.SortedListDirection;
     class Grid extends TSCore.App.UI.View {
@@ -241,8 +289,19 @@ declare module TSGrid {
         protected _columns: TSCore.Data.List<Column>;
         protected _width: number;
         events: TSCore.Events.EventEmitter;
+        protected _columnResizer: ColumnResizer;
+        protected _columnResizerGuide: ColumnResizerGuide;
+        mousePageOffsetX: number;
+        columnResizeStartOffsetX: number;
+        protected _lastHeaderCell: TSGrid.HeaderCell;
+        protected _resizeHeaderCell: TSGrid.HeaderCell;
         constructor(header: Header, body: Body, columns: TSCore.Data.List<Column>);
         initialize(): void;
+        protected documentOnMouseMove(e: any): void;
+        protected positionColumnResizer(offsetX?: number): void;
+        protected columnResizerOnMouseUp(e: any): void;
+        protected createColumnResizer(): void;
+        protected columnResizerOnMouseDown(e: any): void;
         sort(sortPredicate: any, sortDirection: SortedListDirection): void;
         protected afterSort(sortPredicate: any, sortDirection: SortedListDirection): void;
         setHeader(header: Header): this;
@@ -250,6 +309,7 @@ declare module TSGrid {
         setBody(body: Body): this;
         getBody(): Body;
         setColumns(columns: TSCore.Data.List<Column>): this;
+        calculateWidth(): void;
         getColumns(): TSCore.Data.List<Column>;
         getInnerWidth(): number;
         getWidth(): number;
@@ -257,7 +317,11 @@ declare module TSGrid {
         removeRow(): Grid;
         render(): this;
         protected listenHeaderCells(): void;
+        protected columnChangedWidth(e: any): void;
         protected headerCellOnClick(e: any): void;
+        protected headerCellOnMouseEnter(e: any): void;
+        protected headerCellOnMouseLeave(e: any): void;
+        protected positionColumnResizerAtHeaderCell(headerCell: TSGrid.HeaderCell): void;
         protected sortName(name: string): void;
         remove(): this;
     }
@@ -266,11 +330,17 @@ declare module TSGrid {
     class Header extends TSCore.App.UI.View {
         tagName: string;
         className: string;
+        viewEvents: any;
         columns: TSCore.Data.List<Column>;
+        cols: TSCore.Data.List<JQuery>;
         row: HeaderRow;
         _grid: Grid;
+        $table: JQuery;
+        $colgroup: JQuery;
         constructor(columns: TSCore.Data.List<Column>);
         initialize(): void;
+        protected columnChangedWidth(e: any): void;
+        protected dragstart(e: any): void;
         setGrid(grid: Grid): this;
         getGrid(): Grid;
         render(): this;
@@ -285,7 +355,11 @@ declare module TSGrid {
         events: TSCore.Events.EventEmitter;
         protected sortDirection: TSCore.Data.SortedListDirection;
         constructor(column: Column, model: TSCore.App.Data.Model.ActiveModel);
-        click(): void;
+        initialize(): void;
+        protected columnChangedWidth(e: any): void;
+        protected click(): void;
+        protected mouseenter(): void;
+        protected mouseleave(): void;
         setSortDirection(direction: TSCore.Data.SortedListDirection): void;
         render(): this;
     }
@@ -293,6 +367,8 @@ declare module TSGrid {
 declare module TSGrid {
     module HeaderCellEvents {
         const CLICK: string;
+        const MOUSEENTER: string;
+        const MOUSELEAVE: string;
     }
 }
 declare module TSGrid {
@@ -349,6 +425,7 @@ declare module TSGrid {
         const ERROR: string;
         const NEXT: string;
         const NAVIGATE: string;
+        const CHANGED_WIDTH: string;
         const CLICK: string;
     }
 }

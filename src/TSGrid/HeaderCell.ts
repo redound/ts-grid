@@ -8,6 +8,8 @@ module TSGrid {
         public tagName: string = 'th';
 
         public viewEvents: any = {
+            "mouseenter": "mouseenter",
+            "mouseleave": "mouseleave",
             "click a": "click"
         };
 
@@ -28,9 +30,30 @@ module TSGrid {
             this.initialize();
         }
 
-        public click() {
+        public initialize() {
+            super.initialize();
+
+            this.column.events.on(TSGrid.ColumnEvents.CHANGED_WIDTH, e => this.columnChangedWidth(e));
+        }
+
+        protected columnChangedWidth(e) {
+
+            this.render();
+        }
+
+        protected click() {
 
             this.events.trigger(HeaderCellEvents.CLICK, { headerCell: this });
+        }
+
+        protected mouseenter() {
+
+            this.events.trigger(HeaderCellEvents.MOUSEENTER, { headerCell: this });
+        }
+
+        protected mouseleave() {
+
+            this.events.trigger(HeaderCellEvents.MOUSELEAVE, { headerCell: this });
         }
 
         public setSortDirection(direction: TSCore.Data.SortedListDirection) {
@@ -48,9 +71,9 @@ module TSGrid {
             var $label;
 
             if (this.column.getSortable()) {
-                $label = $('<a href="javascript:void(0)">' + this.column.getLabel() + '</a>');
+                $label = $('<a href="javascript:void(0)">' + this.column.getTitle() + '</a>');
             } else {
-                $label = document.createTextNode(this.column.getLabel());
+                $label = document.createTextNode(this.column.getTitle());
             }
 
             this.$el.removeClass('asc');
@@ -69,7 +92,7 @@ module TSGrid {
             if (this.column.getSortable()) {
                 this.$el.addClass('sortable');
             }
-            this.$el.attr('width', this.column.getWidth());
+
             this.delegateEvents();
 
             return this;
