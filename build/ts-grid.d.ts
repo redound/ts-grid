@@ -69,6 +69,7 @@ declare module TSGrid {
         emptyRow: Row;
         _grid: Grid;
         $table: JQuery;
+        $tbody: JQuery;
         $colgroup: JQuery;
         protected _delegate: IBodyDelegate;
         events: TSCore.Events.EventEmitter;
@@ -81,9 +82,11 @@ declare module TSGrid {
         setGrid(grid: Grid): void;
         getGrid(): Grid;
         protected prependEmptyRow(): void;
+        protected removeEmptyRow(): void;
         protected emptyRowDidChange(e: any): void;
-        insertRow(model: TSCore.App.Data.Model.ActiveModel, index?: number, items?: TSCore.Data.ModelCollection<TSCore.App.Data.Model.ActiveModel>): void;
-        insertRows(evt: any): void;
+        addRow(model: TSCore.App.Data.Model.ActiveModel, index?: number, items?: TSCore.Data.ModelCollection<TSCore.App.Data.Model.ActiveModel>): void;
+        protected insertRow(row: TSGrid.Row): void;
+        addRows(evt: any): void;
         removeRows(evt: any): void;
         removeRow(model: TSCore.App.Data.Model.ActiveModel): this;
         refresh(evt: any): void;
@@ -92,11 +95,13 @@ declare module TSGrid {
         getActiveCell(): Cell;
         getCell(model: TSCore.App.Data.Model.ActiveModel, column: TSGrid.Column): TSGrid.Cell;
         moveToCell(evt: any): void;
+        protected deactivateCell(): void;
         protected activate(row: TSGrid.Row, cell: TSGrid.Cell): void;
         protected changedRow(fromRow: TSGrid.Row, toRow: TSGrid.Row): void;
         protected focusEmptyRow(): void;
         protected changedCell(fromCell: TSGrid.Cell, toCell: TSGrid.Cell): void;
         moveToNextCell(evt: any): this;
+        protected beforeActivateCell(column: TSGrid.Column, model: TSCore.App.Data.Model.ActiveModel): boolean;
     }
 }
 declare module TSGrid.BodyEvents {
@@ -297,9 +302,11 @@ declare module TSGrid {
         protected _resizeHeaderCell: TSGrid.HeaderCell;
         constructor(header: Header, body: Body, columns: TSCore.Data.List<Column>);
         initialize(): void;
+        protected documentOnMouseLeave(e: any): void;
+        protected resetColumnResizer(): void;
         protected documentOnMouseMove(e: any): void;
         protected positionColumnResizer(offsetX?: number): void;
-        protected columnResizerOnMouseUp(e: any): void;
+        protected documentOnMouseUp(e: any): void;
         protected createColumnResizer(): void;
         protected columnResizerOnMouseDown(e: any): void;
         sort(sortPredicate: any, sortDirection: SortedListDirection): void;
@@ -313,8 +320,6 @@ declare module TSGrid {
         getColumns(): TSCore.Data.List<Column>;
         getInnerWidth(): number;
         getWidth(): number;
-        insertRow(): Grid;
-        removeRow(): Grid;
         render(): this;
         protected listenHeaderCells(): void;
         protected columnChangedWidth(e: any): void;

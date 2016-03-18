@@ -65,7 +65,30 @@ module TSGrid {
 
             super.initialize();
 
+            $(document).on('mouseup', e => this.documentOnMouseUp(e));
+            $(document).on('mouseleave', e => this.documentOnMouseLeave(e));
             $(document).on('mousemove', e => this.documentOnMouseMove(e));
+        }
+
+        protected documentOnMouseLeave(e) {
+
+            /**
+             * When mouse is released upon leaving document
+             * mouse up won't be detected causing the ColumnResizer
+             * to stay active. Thus we need to reset it.
+             */
+            this.resetColumnResizer();
+        }
+
+        /**
+         * Resets the ColumnResizer
+         */
+        protected resetColumnResizer() {
+
+            this._columnResizer.setActive(false);
+            this._columnResizerGuide.setActive(false);
+            this.createColumnResizer();
+            this._resizeHeaderCell = null;
         }
 
         protected documentOnMouseMove(e) {
@@ -99,11 +122,14 @@ module TSGrid {
             this._columnResizerGuide.$el.height(bodyOuterHeight);
         }
 
-        protected columnResizerOnMouseUp(e) {
+        protected documentOnMouseUp(e) {
+
+            if (!this._columnResizer.getActive()) {
+                return;
+            }
 
             this._columnResizer.setActive(false);
             this._columnResizerGuide.setActive(false);
-            this._columnResizer.remove();
             this.createColumnResizer();
 
             var headerCell = this._resizeHeaderCell;
@@ -133,7 +159,6 @@ module TSGrid {
             this._columnResizer = new TSGrid.ColumnResizer;
             this._columnResizerGuide = new TSGrid.ColumnResizerGuide;
             this._columnResizer.events.on(TSGrid.ColumnResizerEvents.MOUSEDOWN, e => this.columnResizerOnMouseDown(e));
-            this._columnResizer.events.on(TSGrid.ColumnResizerEvents.MOUSEUP, e => this.columnResizerOnMouseUp(e));
             this.$el.append(this._columnResizer.render().$el);
             this.$el.append(this._columnResizerGuide.render().$el);
         }
@@ -221,24 +246,6 @@ module TSGrid {
         }
 
         /**
-         * Delegates to TSGrid.Body#insertRow
-         * @returns {TSGrid.Grid}
-         */
-        public insertRow(): Grid {
-            this._body.insertRow.apply(this._body, arguments);
-            return this;
-        }
-
-        /**
-         * Delegate to TSGrid.Body#removeRow
-         * @returns {TSGrid.Grid}
-         */
-        public removeRow(): Grid {
-            this._body.removeRow.apply(this._body, arguments);
-            return this;
-        }
-
-        /**
          * Renders the grid's header, then the body. Triggers a
          * `TSGridEvents.RENDERED` event along with a reference to the
          * grid when it has successfully been rendered.
@@ -308,7 +315,7 @@ module TSGrid {
 
         protected positionColumnResizerAtHeaderCell(headerCell: TSGrid.HeaderCell) {
 
-            if (this._columnResizer.getActive()) {
+            if (this._columnResizer.getActive() || headerCell.column.getResizable() === false) {
                 return;
             }
 

@@ -145,10 +145,9 @@ var TSGrid;
             this.models.each(function (model) {
                 _this.rows.add(new _this.rowType(_this.columns, model));
             });
-            this.prependEmptyRow();
             this.collection.events.on(TSCore.Data.CollectionEvents.ADD, function (evt) { return _this.addModels(evt); });
             this.collection.events.on(TSCore.Data.CollectionEvents.REMOVE, function (evt) { return _this.removeModels(evt); });
-            this.models.events.on(TSCore.Data.SortedListEvents.ADD, function (evt) { return _this.insertRows(evt); });
+            this.models.events.on(TSCore.Data.SortedListEvents.ADD, function (evt) { return _this.addRows(evt); });
             this.models.events.on(TSCore.Data.SortedListEvents.REMOVE, function (evt) { return _this.removeRows(evt); });
             this.models.events.on(TSCore.Data.SortedListEvents.SORT, function (evt) { return _this.refresh(evt); });
             this.columns.each(function (column) {
@@ -196,35 +195,44 @@ var TSGrid;
             this.emptyRow = new this.rowType(this.columns, this._delegate.bodyModelForEmptyRow(this));
             this.emptyRow.events.on(TSGrid.RowEvents.CHANGED, function (e) { return _this.emptyRowDidChange(e); });
             this.rows.prepend(this.emptyRow);
+            this.insertRow(this.emptyRow);
+        };
+        Body.prototype.removeEmptyRow = function () {
+            if (this.emptyRow) {
+                this.rows.remove(this.emptyRow);
+                this.emptyRow.remove();
+            }
         };
         Body.prototype.emptyRowDidChange = function (e) {
             var row = e.params.row;
             row.valid = this._delegate.bodyValidateModel(this, row.model);
         };
-        Body.prototype.insertRow = function (model, index, items) {
+        Body.prototype.addRow = function (model, index, items) {
             if (_.isUndefined(items)) {
                 this.collection.add(model);
                 return;
             }
             var row = new this.rowType(this.columns, model);
             this.rows.add(row);
-            index = this.rows.indexOf(row);
-            var $tbody = this.$el.find('tbody');
-            var $children = $tbody.children();
+            this.insertRow(row);
+        };
+        Body.prototype.insertRow = function (row) {
+            var index = this.rows.indexOf(row);
+            var $children = this.$tbody.children();
             var $rowEl = row.render().$el;
             if (index >= $children.length) {
-                $tbody.append($rowEl);
+                this.$tbody.append($rowEl);
             }
             else {
                 $children.eq(index).before($rowEl);
             }
         };
-        Body.prototype.insertRows = function (evt) {
+        Body.prototype.addRows = function (evt) {
             var _this = this;
             var operations = evt.params.operations;
-            console.log('insertRows', operations);
+            console.log('addRows', operations);
             _.each(operations, function (operation) {
-                _this.insertRow(operation.item, operation.index, _this.collection);
+                _this.addRow(operation.item, operation.index, _this.collection);
             });
         };
         Body.prototype.removeRows = function (evt) {
@@ -254,7 +262,6 @@ var TSGrid;
                 var row = new _this.rowType(_this.columns, model);
                 _this.rows.add(row);
             });
-            this.prependEmptyRow();
             this.render();
             grid.events.trigger(TSGrid.TSGridEvents.REFRESH, { body: this });
         };
@@ -263,7 +270,7 @@ var TSGrid;
             var grid = this.getGrid();
             this.$el.empty();
             this.$table = $('<table />');
-            var $tbody = $('<tbody />');
+            this.$tbody = $('<tbody />');
             this.$colgroup = $('<colgroup />');
             this.cols.clear();
             this.columns.each(function (column) {
@@ -273,9 +280,9 @@ var TSGrid;
                 _this.cols.add($col);
             });
             this.$table.append(this.$colgroup);
-            this.$table.append($tbody);
+            this.$table.append(this.$tbody);
             this.rows.each(function (row) {
-                $tbody.append(row.render().$el);
+                _this.$tbody.append(row.render().$el);
             });
             this.$table.attr('width', grid.getInnerWidth());
             this.$el.append(this.$table);
@@ -307,7 +314,18 @@ var TSGrid;
             var cell = this.getCell(model, column);
             this.activate(row, cell);
         };
+        Body.prototype.deactivateCell = function () {
+            if (this.activeRow) {
+                this.activeRow.setActive(false);
+            }
+            if (this.activeCell) {
+                this.activeCell.deactivate();
+            }
+        };
         Body.prototype.activate = function (row, cell) {
+            if (this.beforeActivateCell(cell.column, row.model) === false) {
+                return;
+            }
             if (cell.column.getEditable() === false) {
                 return;
             }
@@ -447,6 +465,9 @@ var TSGrid;
                 }
             }
             return this;
+        };
+        Body.prototype.beforeActivateCell = function (column, model) {
+            return true;
         };
         return Body;
     })(TSCore.App.UI.View);
@@ -1040,7 +1061,18 @@ var TSGrid;
         Grid.prototype.initialize = function () {
             var _this = this;
             _super.prototype.initialize.call(this);
+            $(document).on('mouseup', function (e) { return _this.documentOnMouseUp(e); });
+            $(document).on('mouseleave', function (e) { return _this.documentOnMouseLeave(e); });
             $(document).on('mousemove', function (e) { return _this.documentOnMouseMove(e); });
+        };
+        Grid.prototype.documentOnMouseLeave = function (e) {
+            this.resetColumnResizer();
+        };
+        Grid.prototype.resetColumnResizer = function () {
+            this._columnResizer.setActive(false);
+            this._columnResizerGuide.setActive(false);
+            this.createColumnResizer();
+            this._resizeHeaderCell = null;
         };
         Grid.prototype.documentOnMouseMove = function (e) {
             this.mousePageOffsetX = e.pageX;
@@ -1065,10 +1097,12 @@ var TSGrid;
             });
             this._columnResizerGuide.$el.height(bodyOuterHeight);
         };
-        Grid.prototype.columnResizerOnMouseUp = function (e) {
+        Grid.prototype.documentOnMouseUp = function (e) {
+            if (!this._columnResizer.getActive()) {
+                return;
+            }
             this._columnResizer.setActive(false);
             this._columnResizerGuide.setActive(false);
-            this._columnResizer.remove();
             this.createColumnResizer();
             var headerCell = this._resizeHeaderCell;
             this._resizeHeaderCell = null;
@@ -1092,7 +1126,6 @@ var TSGrid;
             this._columnResizer = new TSGrid.ColumnResizer;
             this._columnResizerGuide = new TSGrid.ColumnResizerGuide;
             this._columnResizer.events.on(TSGrid.ColumnResizerEvents.MOUSEDOWN, function (e) { return _this.columnResizerOnMouseDown(e); });
-            this._columnResizer.events.on(TSGrid.ColumnResizerEvents.MOUSEUP, function (e) { return _this.columnResizerOnMouseUp(e); });
             this.$el.append(this._columnResizer.render().$el);
             this.$el.append(this._columnResizerGuide.render().$el);
         };
@@ -1161,14 +1194,6 @@ var TSGrid;
         Grid.prototype.getWidth = function () {
             return this._width + 2;
         };
-        Grid.prototype.insertRow = function () {
-            this._body.insertRow.apply(this._body, arguments);
-            return this;
-        };
-        Grid.prototype.removeRow = function () {
-            this._body.removeRow.apply(this._body, arguments);
-            return this;
-        };
         Grid.prototype.render = function () {
             this.$el.empty();
             if (this._header) {
@@ -1213,7 +1238,7 @@ var TSGrid;
             var headerCell = e.params.headerCell;
         };
         Grid.prototype.positionColumnResizerAtHeaderCell = function (headerCell) {
-            if (this._columnResizer.getActive()) {
+            if (this._columnResizer.getActive() || headerCell.column.getResizable() === false) {
                 return;
             }
             var headerCellOuterHeight = headerCell.$el.outerHeight();

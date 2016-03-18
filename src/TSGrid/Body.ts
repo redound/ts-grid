@@ -55,6 +55,8 @@ module TSGrid {
 
         public $table: JQuery;
 
+        public $tbody: JQuery;
+
         public $colgroup: JQuery;
 
         protected _delegate:IBodyDelegate;
@@ -97,11 +99,9 @@ module TSGrid {
                 ));
             });
 
-            this.prependEmptyRow();
-
             this.collection.events.on(TSCore.Data.CollectionEvents.ADD, evt => this.addModels(evt));
             this.collection.events.on(TSCore.Data.CollectionEvents.REMOVE, evt => this.removeModels(evt));
-            this.models.events.on(TSCore.Data.SortedListEvents.ADD, evt => this.insertRows(evt));
+            this.models.events.on(TSCore.Data.SortedListEvents.ADD, evt => this.addRows(evt));
             this.models.events.on(TSCore.Data.SortedListEvents.REMOVE, evt => this.removeRows(evt));
             this.models.events.on(TSCore.Data.SortedListEvents.SORT, evt => this.refresh(evt));
 
@@ -181,6 +181,16 @@ module TSGrid {
             this.emptyRow.events.on(TSGrid.RowEvents.CHANGED, e => this.emptyRowDidChange(e));
 
             this.rows.prepend(this.emptyRow);
+
+            this.insertRow(this.emptyRow);
+        }
+
+        protected removeEmptyRow() {
+
+            if (this.emptyRow) {
+                this.rows.remove(this.emptyRow);
+                this.emptyRow.remove();
+            }
         }
 
         protected emptyRowDidChange(e) {
@@ -195,9 +205,9 @@ module TSGrid {
          * @param index
          * @param items
          */
-        public insertRow(model:TSCore.App.Data.Model.ActiveModel, index?:number, items?:TSCore.Data.ModelCollection<TSCore.App.Data.Model.ActiveModel>) {
+        public addRow(model:TSCore.App.Data.Model.ActiveModel, index?:number, items?:TSCore.Data.ModelCollection<TSCore.App.Data.Model.ActiveModel>) {
 
-            // insertRow() is called directly
+            // addRow() is called directly
             if (_.isUndefined(items)) {
                 this.collection.add(model);
                 return;
@@ -210,15 +220,18 @@ module TSGrid {
 
             this.rows.add(row);
 
-            index = this.rows.indexOf(row);
+            this.insertRow(row);
+        }
 
-            var $tbody = this.$el.find('tbody');
+        protected insertRow(row: TSGrid.Row) {
 
-            var $children = $tbody.children();
+            var index = this.rows.indexOf(row);
+
+            var $children = this.$tbody.children();
             var $rowEl = row.render().$el;
 
             if (index >= $children.length) {
-                $tbody.append($rowEl);
+                this.$tbody.append($rowEl);
             }
             else {
                 $children.eq(index).before($rowEl);
@@ -229,14 +242,14 @@ module TSGrid {
          * This method can be called as a callback to a TSCore.Data.Collection#add event.
          * @param evt
          */
-        public insertRows(evt) {
+        public addRows(evt) {
 
             var operations:TSCore.Data.ICollectionOperation<TSCore.App.Data.Model.ActiveModel>[] = evt.params.operations;
 
-            console.log('insertRows', operations);
+            console.log('addRows', operations);
 
             _.each(operations, operation => {
-                this.insertRow(operation.item, operation.index, this.collection);
+                this.addRow(operation.item, operation.index, this.collection);
             });
         }
 
@@ -295,8 +308,6 @@ module TSGrid {
                 this.rows.add(row);
             });
 
-            this.prependEmptyRow();
-
             this.render();
             grid.events.trigger(TSGridEvents.REFRESH, {body: this});
         }
@@ -313,7 +324,7 @@ module TSGrid {
             this.$el.empty();
 
             this.$table = $('<table />');
-            var $tbody = $('<tbody />');
+            this.$tbody = $('<tbody />');
             this.$colgroup = $('<colgroup />');
             this.cols.clear();
             this.columns.each(column => {
@@ -324,10 +335,10 @@ module TSGrid {
             });
 
             this.$table.append(this.$colgroup);
-            this.$table.append($tbody);
+            this.$table.append(this.$tbody);
 
             this.rows.each(row => {
-                $tbody.append(row.render().$el);
+                this.$tbody.append(row.render().$el);
             });
 
             this.$table.attr('width', grid.getInnerWidth());
@@ -374,7 +385,22 @@ module TSGrid {
             this.activate(row, cell);
         }
 
+        protected deactivateCell() {
+
+            if (this.activeRow) {
+                this.activeRow.setActive(false);
+            }
+
+            if (this.activeCell) {
+                this.activeCell.deactivate();
+            }
+        }
+
         protected activate(row: TSGrid.Row, cell:TSGrid.Cell) {
+
+            if (this.beforeActivateCell(cell.column, row.model) === false) {
+                return;
+            }
 
             if (cell.column.getEditable() === false) {
                 return;
@@ -553,6 +579,10 @@ module TSGrid {
             }
 
             return this;
+        }
+
+        protected beforeActivateCell(column: TSGrid.Column, model: TSCore.App.Data.Model.ActiveModel): boolean {
+            return true;
         }
     }
 }
