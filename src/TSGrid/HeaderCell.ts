@@ -70,11 +70,18 @@ module TSGrid {
 
             var $label;
 
+            if (this.column.getDescription()) {
+                this.$el.append('<div class="th-description">' + this.column.getDescription() + '</div>');
+            }
+
             if (this.column.getSortable()) {
                 $label = $('<a href="javascript:void(0)">' + this.column.getTitle() + '</a>');
             } else {
                 $label = document.createTextNode(this.column.getTitle());
             }
+
+            this.$el.append($label);
+
 
             this.$el.removeClass('asc');
             this.$el.removeClass('desc');
@@ -87,7 +94,6 @@ module TSGrid {
                 this.$el.addClass('desc');
             }
 
-            this.$el.append($label);
             this.$el.addClass(this.column.getClassName());
             if (this.column.getSortable()) {
                 this.$el.addClass('sortable');

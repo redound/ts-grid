@@ -193,6 +193,7 @@ declare module TSGrid {
         protected _width: number;
         protected _name: string;
         protected _titleFormatter: any;
+        protected _descriptionFormatter: any;
         protected _renderable: boolean;
         protected _editOnInput: boolean;
         protected _editable: boolean;
@@ -208,6 +209,9 @@ declare module TSGrid {
         protected _className: string;
         events: TSCore.Events.EventEmitter;
         constructor();
+        descriptionFormatter(descriptionFormatter: any): this;
+        getDescriptionFormatter(): any;
+        getDescription(): string;
         className(className: string): this;
         getClassName(): string;
         getId(): number;

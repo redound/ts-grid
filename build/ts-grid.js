@@ -805,6 +805,19 @@ var TSGrid;
             this.events = new TSCore.Events.EventEmitter();
             this._uniqId = parseInt(_.uniqueId());
         }
+        Column.prototype.descriptionFormatter = function (descriptionFormatter) {
+            this._descriptionFormatter = descriptionFormatter;
+            return this;
+        };
+        Column.prototype.getDescriptionFormatter = function () {
+            return this._descriptionFormatter;
+        };
+        Column.prototype.getDescription = function () {
+            if (this._descriptionFormatter) {
+                return this._descriptionFormatter(this);
+            }
+            return null;
+        };
         Column.prototype.className = function (className) {
             this._className = className;
             return this;
@@ -1402,12 +1415,16 @@ var TSGrid;
         HeaderCell.prototype.render = function () {
             this.$el.empty();
             var $label;
+            if (this.column.getDescription()) {
+                this.$el.append('<div class="th-description">' + this.column.getDescription() + '</div>');
+            }
             if (this.column.getSortable()) {
                 $label = $('<a href="javascript:void(0)">' + this.column.getTitle() + '</a>');
             }
             else {
                 $label = document.createTextNode(this.column.getTitle());
             }
+            this.$el.append($label);
             this.$el.removeClass('asc');
             this.$el.removeClass('desc');
             if (this.sortDirection === TSCore.Data.SortedListDirection.ASCENDING) {
@@ -1416,7 +1433,6 @@ var TSGrid;
             if (this.sortDirection === TSCore.Data.SortedListDirection.DESCENDING) {
                 this.$el.addClass('desc');
             }
-            this.$el.append($label);
             this.$el.addClass(this.column.getClassName());
             if (this.column.getSortable()) {
                 this.$el.addClass('sortable');

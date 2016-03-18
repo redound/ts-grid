@@ -20,6 +20,8 @@ module TSGrid {
 
         protected _titleFormatter: any;
 
+        protected _descriptionFormatter: any;
+
         protected _renderable: boolean = true;
 
         protected _editOnInput: boolean = false;
@@ -51,6 +53,26 @@ module TSGrid {
         public constructor() {
 
             this._uniqId = parseInt(<any>_.uniqueId());
+        }
+
+        public descriptionFormatter(descriptionFormatter: any): this {
+
+            this._descriptionFormatter = descriptionFormatter;
+            return this;
+        }
+
+        public getDescriptionFormatter() {
+
+            return this._descriptionFormatter;
+        }
+
+        public getDescription(): string {
+
+            if (this._descriptionFormatter) {
+                return this._descriptionFormatter(this);
+            }
+
+            return null;
         }
 
         public className(className: string): this {
