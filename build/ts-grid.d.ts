@@ -65,6 +65,7 @@ declare module TSGrid {
         rowType: IRow;
         rows: TSCore.Data.List<Row>;
         models: TSCore.Data.SortedList<TSCore.App.Data.Model.ActiveModel>;
+        rowsByModelId: TSCore.Data.Dictionary<any, TSGrid.Row>;
         collection: TSCore.Data.ModelCollection<TSCore.App.Data.Model.ActiveModel>;
         emptyRow: Row;
         _grid: Grid;
@@ -89,6 +90,7 @@ declare module TSGrid {
         addRows(evt: any): void;
         removeRows(evt: any): void;
         removeRow(model: TSCore.App.Data.Model.ActiveModel): this;
+        sortRows(e: any): void;
         refresh(evt: any): void;
         render(): this;
         remove(): this;

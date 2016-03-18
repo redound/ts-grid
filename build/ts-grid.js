@@ -128,6 +128,7 @@ var TSGrid;
             this.className = 'ts-grid-body';
             this.cols = new TSCore.Data.List();
             this.rowType = TSGrid.Row;
+            this.rowsByModelId = new TSCore.Data.Dictionary();
             this.events = new TSCore.Events.EventEmitter();
             this._delegate = delegate;
             this.columns = columns;
@@ -142,14 +143,17 @@ var TSGrid;
             var models = this.collection.all();
             this.models = new TSCore.Data.SortedList(models, this._delegate.bodyPrimaryKeyForModels(this));
             this.models.setSortPredicate(this._delegate.bodyDefaultSortPredicateForModels(this), this._delegate.bodyDefaultSortDirectionForModels(this));
+            this.rowsByModelId.clear();
             this.models.each(function (model) {
-                _this.rows.add(new _this.rowType(_this.columns, model));
+                var row = new _this.rowType(_this.columns, model);
+                _this.rowsByModelId.set(model.getId(), row);
+                _this.rows.add(row);
             });
             this.collection.events.on(TSCore.Data.CollectionEvents.ADD, function (evt) { return _this.addModels(evt); });
             this.collection.events.on(TSCore.Data.CollectionEvents.REMOVE, function (evt) { return _this.removeModels(evt); });
             this.models.events.on(TSCore.Data.SortedListEvents.ADD, function (evt) { return _this.addRows(evt); });
             this.models.events.on(TSCore.Data.SortedListEvents.REMOVE, function (evt) { return _this.removeRows(evt); });
-            this.models.events.on(TSCore.Data.SortedListEvents.SORT, function (evt) { return _this.refresh(evt); });
+            this.models.events.on(TSCore.Data.SortedListEvents.SORT, function (evt) { return _this.sortRows(evt); });
             this.columns.each(function (column) {
                 column.events.on(TSGrid.ColumnEvents.CHANGED_WIDTH, function (e) { return _this.columnChangedWidth(e); });
             });
@@ -169,7 +173,6 @@ var TSGrid;
             var _this = this;
             var operations = evt.params.operations;
             _.each(operations, function (operation) {
-                console.log("add item '" + operation.item.get('title') + "' from models, collectionIndex: '" + operation.index + "', modelsIndex: '" + _this.models.indexOf(operation.item) + "'");
                 _this.models.add(operation.item);
             });
         };
@@ -177,7 +180,6 @@ var TSGrid;
             var _this = this;
             var operations = evt.params.operations;
             _.each(operations, function (operation) {
-                console.log("remove item '" + operation.item.get('title') + "' from models, collectionIndex: '" + operation.index + "', modelsIndex: '" + _this.models.indexOf(operation.item) + "'");
                 _this.models.remove(operation.item);
             });
         };
@@ -230,7 +232,6 @@ var TSGrid;
         Body.prototype.addRows = function (evt) {
             var _this = this;
             var operations = evt.params.operations;
-            console.log('addRows', operations);
             _.each(operations, function (operation) {
                 _this.addRow(operation.item, operation.index, _this.collection);
             });
@@ -238,7 +239,6 @@ var TSGrid;
         Body.prototype.removeRows = function (evt) {
             var _this = this;
             var operations = evt.params.operations;
-            console.log('removeRows', operations);
             var rows = _.map(operations, function (operation) {
                 return _this.rows.get(operation.index);
             });
@@ -251,6 +251,17 @@ var TSGrid;
             this.collection.remove(model);
             return this;
         };
+        Body.prototype.sortRows = function (e) {
+            var _this = this;
+            this.deactivateCell();
+            this.rows.clear();
+            this.$tbody.children().detach();
+            this.models.each(function (model) {
+                var row = _this.rowsByModelId.get(model.getId());
+                _this.rows.add(row);
+                _this.$tbody.append(row.$el);
+            });
+        };
         Body.prototype.refresh = function (evt) {
             var _this = this;
             var grid = this.getGrid();
@@ -258,8 +269,10 @@ var TSGrid;
                 row.remove();
             });
             this.rows = new TSCore.Data.List();
+            this.rowsByModelId.clear();
             this.models.each(function (model) {
                 var row = new _this.rowType(_this.columns, model);
+                _this.rowsByModelId.set(model.getId(), row);
                 _this.rows.add(row);
             });
             this.render();
@@ -343,11 +356,9 @@ var TSGrid;
                 this.changedCell(oldCell, cell);
             }
             if (cell.isActivated()) {
-                console.debug('enterEditMode');
                 cell.enterEditMode();
             }
             else {
-                console.debug('activate');
                 cell.activate();
             }
         };
@@ -359,7 +370,6 @@ var TSGrid;
             if (toRow) {
                 toRow.setActive(true);
             }
-            console.debug('fromRow', fromRow, 'toRow', toRow);
             if (fromRow && fromRow !== this.emptyRow) {
                 fromRow.valid = this._delegate.bodyValidateModel(this, fromRow.model);
                 var shouldUpdate = this._delegate.bodyShouldUpdateModel(this, fromRow.model);
@@ -392,7 +402,6 @@ var TSGrid;
             this.activate(row, cell);
         };
         Body.prototype.changedCell = function (fromCell, toCell) {
-            console.debug('fromCell', fromCell, 'toCell', toCell);
             this.events.trigger(TSGrid.BodyEvents.CHANGED_CELL, { fromCell: fromCell, toCell: toCell });
         };
         Body.prototype.moveToNextCell = function (evt) {

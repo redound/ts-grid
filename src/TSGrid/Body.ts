@@ -47,6 +47,8 @@ module TSGrid {
 
         public models:TSCore.Data.SortedList<TSCore.App.Data.Model.ActiveModel>;
 
+        public rowsByModelId: TSCore.Data.Dictionary<any, TSGrid.Row> = new TSCore.Data.Dictionary<any, TSGrid.Row>();
+
         public collection:TSCore.Data.ModelCollection<TSCore.App.Data.Model.ActiveModel>;
 
         public emptyRow:Row;
@@ -91,19 +93,22 @@ module TSGrid {
             this.models = new TSCore.Data.SortedList<TSCore.App.Data.Model.ActiveModel>(models, this._delegate.bodyPrimaryKeyForModels(this));
 
             this.models.setSortPredicate(this._delegate.bodyDefaultSortPredicateForModels(this), this._delegate.bodyDefaultSortDirectionForModels(this));
+            this.rowsByModelId.clear();
             this.models.each(model => {
 
-                this.rows.add(new this.rowType(
+                var row = new this.rowType(
                     this.columns,
                     model
-                ));
+                );
+                this.rowsByModelId.set(model.getId(), row);
+                this.rows.add(row);
             });
 
             this.collection.events.on(TSCore.Data.CollectionEvents.ADD, evt => this.addModels(evt));
             this.collection.events.on(TSCore.Data.CollectionEvents.REMOVE, evt => this.removeModels(evt));
             this.models.events.on(TSCore.Data.SortedListEvents.ADD, evt => this.addRows(evt));
             this.models.events.on(TSCore.Data.SortedListEvents.REMOVE, evt => this.removeRows(evt));
-            this.models.events.on(TSCore.Data.SortedListEvents.SORT, evt => this.refresh(evt));
+            this.models.events.on(TSCore.Data.SortedListEvents.SORT, evt => this.sortRows(evt));
 
             this.columns.each(column => {
                 column.events.on(TSGrid.ColumnEvents.CHANGED_WIDTH, e => this.columnChangedWidth(e));
@@ -133,7 +138,7 @@ module TSGrid {
 
             _.each(operations, operation => {
 
-                console.log(`add item '${operation.item.get('title')}' from models, collectionIndex: '${operation.index}', modelsIndex: '${this.models.indexOf(operation.item)}'`);
+                //console.log(`add item '${operation.item.get('title')}' from models, collectionIndex: '${operation.index}', modelsIndex: '${this.models.indexOf(operation.item)}'`);
 
                 this.models.add(operation.item);
             });
@@ -145,7 +150,7 @@ module TSGrid {
 
             _.each(operations, operation => {
 
-                console.log(`remove item '${operation.item.get('title')}' from models, collectionIndex: '${operation.index}', modelsIndex: '${this.models.indexOf(operation.item)}'`);
+                //console.log(`remove item '${operation.item.get('title')}' from models, collectionIndex: '${operation.index}', modelsIndex: '${this.models.indexOf(operation.item)}'`);
 
                 this.models.remove(operation.item);
             });
@@ -246,8 +251,6 @@ module TSGrid {
 
             var operations:TSCore.Data.ICollectionOperation<TSCore.App.Data.Model.ActiveModel>[] = evt.params.operations;
 
-            console.log('addRows', operations);
-
             _.each(operations, operation => {
                 this.addRow(operation.item, operation.index, this.collection);
             });
@@ -260,8 +263,6 @@ module TSGrid {
         public removeRows(evt) {
 
             var operations:TSCore.Data.ICollectionOperation<TSCore.App.Data.Model.ActiveModel>[] = evt.params.operations;
-
-            console.log('removeRows', operations);
 
             // First gather row objects, when we delete directly indexes
             // won't be correct
@@ -289,6 +290,18 @@ module TSGrid {
             return this;
         }
 
+        public sortRows(e) {
+
+            this.deactivateCell();
+            this.rows.clear();
+            this.$tbody.children().detach();
+            this.models.each(model => {
+                var row = this.rowsByModelId.get(model.getId());
+                this.rows.add(row);
+                this.$tbody.append(row.$el);
+            });
+        }
+
         public refresh(evt) {
 
             var grid = this.getGrid();
@@ -298,13 +311,14 @@ module TSGrid {
             });
 
             this.rows = new TSCore.Data.List<Row>();
+            this.rowsByModelId.clear();
 
             this.models.each(model => {
                 var row = new this.rowType(
                     this.columns,
                     model
                 );
-
+                this.rowsByModelId.set(model.getId(), row);
                 this.rows.add(row);
             });
 
@@ -333,10 +347,8 @@ module TSGrid {
                 this.$colgroup.append($col);
                 this.cols.add($col);
             });
-
             this.$table.append(this.$colgroup);
             this.$table.append(this.$tbody);
-
             this.rows.each(row => {
                 this.$tbody.append(row.render().$el);
             });
@@ -422,10 +434,8 @@ module TSGrid {
             }
 
             if (cell.isActivated()) {
-                console.debug('enterEditMode');
                 cell.enterEditMode();
             } else {
-                console.debug('activate');
                 cell.activate();
             }
         }
@@ -439,8 +449,6 @@ module TSGrid {
             if (toRow) {
                 toRow.setActive(true);
             }
-
-            console.debug('fromRow', fromRow, 'toRow', toRow);
 
             if (fromRow && fromRow !== this.emptyRow) {
 
@@ -482,8 +490,6 @@ module TSGrid {
         }
 
         protected changedCell(fromCell: TSGrid.Cell, toCell: TSGrid.Cell) {
-
-            console.debug('fromCell', fromCell, 'toCell', toCell);
 
             this.events.trigger(TSGrid.BodyEvents.CHANGED_CELL, { fromCell: fromCell, toCell: toCell });
         }
