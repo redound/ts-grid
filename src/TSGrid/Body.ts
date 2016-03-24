@@ -223,6 +223,8 @@ module TSGrid {
                 model
             );
 
+            this.rowsByModelId.set(model.getId(), row);
+
             this.rows.add(row);
 
             this.insertRow(row);
@@ -297,6 +299,7 @@ module TSGrid {
             this.$tbody.children().detach();
             this.models.each(model => {
                 var row = this.rowsByModelId.get(model.getId());
+
                 this.rows.add(row);
                 this.$tbody.append(row.$el);
             });

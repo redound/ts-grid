@@ -129,12 +129,14 @@ declare module TSGrid {
         model: TSCore.App.Data.Model.ActiveModel;
         activated: boolean;
         protected _validationEnabled: boolean;
+        $cellLabel: JQuery;
         constructor(column: Column, model: TSCore.App.Data.Model.ActiveModel);
         initialize(): void;
         validationEnabled(validationEnabled?: boolean): this;
         getValidationEnabled(): boolean;
         setModelValue(value: any): this;
         getModelValue(): any;
+        getContentWidth(): number;
         render(): this;
         protected keypress(evt: any): void;
         protected keydown(evt: any): void;
@@ -264,6 +266,8 @@ declare module TSGrid {
     class ColumnResizer extends TSCore.App.UI.View {
         tagName: string;
         className: string;
+        clicks: number;
+        delay: number;
         viewEvents: any;
         events: TSCore.Events.EventEmitter;
         protected _active: boolean;
@@ -278,6 +282,7 @@ declare module TSGrid {
     module ColumnResizerEvents {
         const MOUSEUP: string;
         const MOUSEDOWN: string;
+        const DBLCLICK: string;
     }
 }
 declare module TSGrid {
@@ -315,6 +320,7 @@ declare module TSGrid {
         protected documentOnMouseUp(e: any): void;
         protected createColumnResizer(): void;
         protected columnResizerOnMouseDown(e: any): void;
+        protected columnResizerOnDoubleClick(e: any): void;
         sort(sortPredicate: any, sortDirection: SortedListDirection): void;
         protected afterSort(sortPredicate: any, sortDirection: SortedListDirection): void;
         setHeader(header: Header): this;

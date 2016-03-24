@@ -6,9 +6,14 @@ module TSGrid {
 
         public className: string = 'manualColumnResizer';
 
+        public clicks: number = 0;
+
+        public delay: number = 400;
+
         public viewEvents: any = {
             "mousedown": "mousedown",
-            "mouseup": "mouseup"
+            "mouseup": "mouseup",
+            "dblclick": "dblclick"
         };
 
         public events: TSCore.Events.EventEmitter = new TSCore.Events.EventEmitter();
@@ -24,7 +29,19 @@ module TSGrid {
 
         protected mousedown() {
 
-            this.events.trigger(TSGrid.ColumnResizerEvents.MOUSEDOWN, { columnResizer: this });
+            event.preventDefault();
+            this.clicks++;
+
+            setTimeout(() => {
+                this.clicks = 0;
+            }, this.delay);
+
+            if (this.clicks === 2) {
+                this.events.trigger(TSGrid.ColumnResizerEvents.DBLCLICK, { columnResizer: this });
+                this.clicks = 0;
+            } else {
+                this.events.trigger(TSGrid.ColumnResizerEvents.MOUSEDOWN, { columnResizer: this });
+            }
         }
 
         protected mouseup() {

@@ -42,6 +42,8 @@ module TSGrid {
 
         protected _validationEnabled: boolean = false;
 
+        public $cellLabel: JQuery;
+
         public constructor(column: Column, model: TSCore.App.Data.Model.ActiveModel) {
 
             super();
@@ -110,6 +112,10 @@ module TSGrid {
             return this.model.get(this.column.getName());
         }
 
+        public getContentWidth() {
+            return this.$cellLabel.width();
+        }
+
         /**
          * This function is responsible for
          * rendering the element in display mode.
@@ -134,10 +140,11 @@ module TSGrid {
             var getter = this.column.getGetter();
 
             var modelValue = getter ? getter(this.model) : this.model.get(this.column.getName());
-            var value = formatter ? formatter(this.model) : modelValue;
+            var value = formatter ? formatter(this.model, this) : modelValue;
 
-            this.$el.html(value);
-
+            this.$cellLabel = $('<span class="cell-label"></span>');
+            this.$cellLabel.html(value);
+            this.$el.append(this.$cellLabel);
 
             var columnClassName = this.column.getClassName();
             if (columnClassName) {
@@ -145,9 +152,9 @@ module TSGrid {
             }
 
             if (this.getValidationEnabled() && this.model.isValid(this.column.getName()) === false && this.model.isDirty(this.column.getName()) === true) {
-                this.$el.addClass('error');
+                this.$el.addClass('warning-state');
             } else {
-                this.$el.removeClass('error');
+                this.$el.removeClass('warning-state');
             }
 
             this.delegateEvents();

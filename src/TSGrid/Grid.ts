@@ -130,6 +130,16 @@ module TSGrid {
 
             this._columnResizer.setActive(false);
             this._columnResizerGuide.setActive(false);
+
+            var movedX = Math.abs(this.mousePageOffsetX - this.columnResizeStartOffsetX);
+
+            if (movedX < 5) {
+
+                this.positionColumnResizerAtHeaderCell(this._resizeHeaderCell);
+                this._resizeHeaderCell = null;
+                return;
+            }
+
             this.createColumnResizer();
 
             var headerCell = this._resizeHeaderCell;
@@ -159,6 +169,7 @@ module TSGrid {
             this._columnResizer = new TSGrid.ColumnResizer;
             this._columnResizerGuide = new TSGrid.ColumnResizerGuide;
             this._columnResizer.events.on(TSGrid.ColumnResizerEvents.MOUSEDOWN, e => this.columnResizerOnMouseDown(e));
+            this._columnResizer.events.on(TSGrid.ColumnResizerEvents.DBLCLICK, e => this.columnResizerOnDoubleClick(e));
             this.$el.append(this._columnResizer.render().$el);
             this.$el.append(this._columnResizerGuide.render().$el);
         }
@@ -170,6 +181,32 @@ module TSGrid {
             this._columnResizerGuide.setActive(true);
             this._resizeHeaderCell = this._lastHeaderCell;
             this.positionColumnResizer();
+        }
+
+        protected columnResizerOnDoubleClick(e) {
+
+            var column: TSGrid.Column = this._lastHeaderCell.column;
+            var columnIndex = this._columns.indexOf(column);
+            var body = this.getBody();
+
+            var maxContentWidth = 0;
+            body.rows.each(row => {
+
+                var cell = row.cells.get(columnIndex);
+                var contentWidth = cell.getContentWidth();
+                maxContentWidth = contentWidth > maxContentWidth ? contentWidth : maxContentWidth;
+            });
+
+            var calculatedWidth = maxContentWidth + 14;
+
+            var minWidth = column.getMinWidth();
+            var maxWidth = column.getMaxWidth();
+            var width = column.getWidth();
+            var newWidth = Math.min(Math.max(calculatedWidth, minWidth), maxWidth);
+
+            column.width(newWidth);
+
+            this.createColumnResizer();
         }
 
         public sort(sortPredicate: any, sortDirection: SortedListDirection) {
@@ -189,7 +226,6 @@ module TSGrid {
             headerRow.cells.each(cell => {
 
                 if (cell.column.getName() === sortPredicate) {
-                    console.log(cell.column.getName() + ' was clicked');
                     cell.setSortDirection(sortDirection);
                 } else {
                     cell.setSortDirection(null);

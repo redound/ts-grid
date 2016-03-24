@@ -215,6 +215,7 @@ var TSGrid;
                 return;
             }
             var row = new this.rowType(this.columns, model);
+            this.rowsByModelId.set(model.getId(), row);
             this.rows.add(row);
             this.insertRow(row);
         };
@@ -542,22 +543,27 @@ var TSGrid;
             }
             return this.model.get(this.column.getName());
         };
+        Cell.prototype.getContentWidth = function () {
+            return this.$cellLabel.width();
+        };
         Cell.prototype.render = function () {
             this.$el.empty();
             var formatter = this.column.getFormatter();
             var getter = this.column.getGetter();
             var modelValue = getter ? getter(this.model) : this.model.get(this.column.getName());
-            var value = formatter ? formatter(this.model) : modelValue;
-            this.$el.html(value);
+            var value = formatter ? formatter(this.model, this) : modelValue;
+            this.$cellLabel = $('<span class="cell-label"></span>');
+            this.$cellLabel.html(value);
+            this.$el.append(this.$cellLabel);
             var columnClassName = this.column.getClassName();
             if (columnClassName) {
                 this.$el.addClass(columnClassName);
             }
             if (this.getValidationEnabled() && this.model.isValid(this.column.getName()) === false && this.model.isDirty(this.column.getName()) === true) {
-                this.$el.addClass('error');
+                this.$el.addClass('warning-state');
             }
             else {
-                this.$el.removeClass('error');
+                this.$el.removeClass('warning-state');
             }
             this.delegateEvents();
             return this;
@@ -992,16 +998,31 @@ var TSGrid;
             _super.call(this);
             this.tagName = 'div';
             this.className = 'manualColumnResizer';
+            this.clicks = 0;
+            this.delay = 400;
             this.viewEvents = {
                 "mousedown": "mousedown",
-                "mouseup": "mouseup"
+                "mouseup": "mouseup",
+                "dblclick": "dblclick"
             };
             this.events = new TSCore.Events.EventEmitter();
             this._active = false;
             this.initialize();
         }
         ColumnResizer.prototype.mousedown = function () {
-            this.events.trigger(TSGrid.ColumnResizerEvents.MOUSEDOWN, { columnResizer: this });
+            var _this = this;
+            event.preventDefault();
+            this.clicks++;
+            setTimeout(function () {
+                _this.clicks = 0;
+            }, this.delay);
+            if (this.clicks === 2) {
+                this.events.trigger(TSGrid.ColumnResizerEvents.DBLCLICK, { columnResizer: this });
+                this.clicks = 0;
+            }
+            else {
+                this.events.trigger(TSGrid.ColumnResizerEvents.MOUSEDOWN, { columnResizer: this });
+            }
         };
         ColumnResizer.prototype.mouseup = function () {
             this.events.trigger(TSGrid.ColumnResizerEvents.MOUSEUP, { columnResizer: this });
@@ -1031,6 +1052,7 @@ var TSGrid;
     (function (ColumnResizerEvents) {
         ColumnResizerEvents.MOUSEUP = 'mouseup';
         ColumnResizerEvents.MOUSEDOWN = 'mousedown';
+        ColumnResizerEvents.DBLCLICK = 'dblclick';
     })(ColumnResizerEvents = TSGrid.ColumnResizerEvents || (TSGrid.ColumnResizerEvents = {}));
 })(TSGrid || (TSGrid = {}));
 var TSGrid;
@@ -1125,6 +1147,12 @@ var TSGrid;
             }
             this._columnResizer.setActive(false);
             this._columnResizerGuide.setActive(false);
+            var movedX = Math.abs(this.mousePageOffsetX - this.columnResizeStartOffsetX);
+            if (movedX < 5) {
+                this.positionColumnResizerAtHeaderCell(this._resizeHeaderCell);
+                this._resizeHeaderCell = null;
+                return;
+            }
             this.createColumnResizer();
             var headerCell = this._resizeHeaderCell;
             this._resizeHeaderCell = null;
@@ -1148,6 +1176,7 @@ var TSGrid;
             this._columnResizer = new TSGrid.ColumnResizer;
             this._columnResizerGuide = new TSGrid.ColumnResizerGuide;
             this._columnResizer.events.on(TSGrid.ColumnResizerEvents.MOUSEDOWN, function (e) { return _this.columnResizerOnMouseDown(e); });
+            this._columnResizer.events.on(TSGrid.ColumnResizerEvents.DBLCLICK, function (e) { return _this.columnResizerOnDoubleClick(e); });
             this.$el.append(this._columnResizer.render().$el);
             this.$el.append(this._columnResizerGuide.render().$el);
         };
@@ -1157,6 +1186,24 @@ var TSGrid;
             this._columnResizerGuide.setActive(true);
             this._resizeHeaderCell = this._lastHeaderCell;
             this.positionColumnResizer();
+        };
+        Grid.prototype.columnResizerOnDoubleClick = function (e) {
+            var column = this._lastHeaderCell.column;
+            var columnIndex = this._columns.indexOf(column);
+            var body = this.getBody();
+            var maxContentWidth = 0;
+            body.rows.each(function (row) {
+                var cell = row.cells.get(columnIndex);
+                var contentWidth = cell.getContentWidth();
+                maxContentWidth = contentWidth > maxContentWidth ? contentWidth : maxContentWidth;
+            });
+            var calculatedWidth = maxContentWidth + 14;
+            var minWidth = column.getMinWidth();
+            var maxWidth = column.getMaxWidth();
+            var width = column.getWidth();
+            var newWidth = Math.min(Math.max(calculatedWidth, minWidth), maxWidth);
+            column.width(newWidth);
+            this.createColumnResizer();
         };
         Grid.prototype.sort = function (sortPredicate, sortDirection) {
             this._body.models.setSortPredicate(sortPredicate, sortDirection);
@@ -1169,7 +1216,6 @@ var TSGrid;
             var headerRow = this._header.row;
             headerRow.cells.each(function (cell) {
                 if (cell.column.getName() === sortPredicate) {
-                    console.log(cell.column.getName() + ' was clicked');
                     cell.setSortDirection(sortDirection);
                 }
                 else {
