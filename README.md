@@ -1,11 +1,32 @@
 TSGrid 
 =========
 
-*TypeScript Data Grid Library*
+> Typescript Data Grid Library.
 
-## Contributing ##
-Please file issues under GitHub, or submit a pull request if you'd like to directly contribute.
+## Usage
+
+```ts
+import * as TSGrid from 'ts-grid'
+```
+
+## Contributing
+
+```sh
+# Installation
+# Fork this repo (https://github.com/redound/ts-grid)
+# Clone the fork (E.g. `https://github.com/<your_username>/ts-grid.git`)
+
+cd ts-grid
+
+```
 
 ## Credits ##
 
 Thanks to [Jimmy Yuen Ho Wong](https://github.com/wyuenho) and contributors of the [Backgrid](https://github.com/wyuenho/backgrid) project which TSGrid is based upon.
+
+## License
+
+MIT
+
+
+

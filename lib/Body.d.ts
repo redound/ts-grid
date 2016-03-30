@@ -1,0 +1,83 @@
+import SortedList, { SortedListDirection } from "ts-core/lib/Data/SortedList";
+import ActiveModel from "ts-data/lib/Model/ActiveModel";
+import View from "./View";
+import List from "ts-core/lib/Data/List";
+import Dictionary from "ts-core/lib/Data/Dictionary";
+import ModelCollection from "ts-core/lib/Data/ModelCollection";
+import EventEmitter from "ts-core/lib/Events/EventEmitter";
+import { default as Column } from "./Column";
+import Row, { RowInterface } from "./Row";
+import Cell from "./Cell";
+import Grid from "./Grid";
+export declare const BODY_EVENTS: {
+    CHANGED_ROW: string;
+    CHANGED_CELL: string;
+};
+export interface GridPosition {
+    model: ActiveModel;
+    column: Column;
+}
+export interface BodyDelegateInterface {
+    bodyDefaultSortPredicateForModels(body: Body): any;
+    bodyDefaultSortDirectionForModels(body: Body): SortedListDirection;
+    bodyModelForEmptyRow(body: Body): ActiveModel;
+    bodyPrimaryKeyForModels(body: Body): any;
+    bodyBeforeCreateModel(body: Body, model: ActiveModel): void;
+    bodyCreateModel(body: Body, model: ActiveModel): ng.IPromise<ActiveModel>;
+    bodyAfterCreateModel(body: Body, model: ActiveModel): void;
+    bodyValidateModel(body: Body, model: ActiveModel): boolean;
+    bodyShouldUpdateModel(body: Body, model: ActiveModel): boolean;
+    bodyUpdateModel(body: Body, model: ActiveModel): ng.IPromise<ActiveModel>;
+    bodyAfterUpdateModel(body: Body, model: ActiveModel): void;
+}
+export declare class Body extends View {
+    tagName: string;
+    className: string;
+    activePosition: GridPosition;
+    activeRow: Row;
+    activeCell: Cell;
+    columns: List<Column>;
+    cols: List<JQuery>;
+    rowType: RowInterface;
+    rows: List<Row>;
+    models: SortedList<ActiveModel>;
+    rowsByModelId: Dictionary<any, Row>;
+    collection: ModelCollection<ActiveModel>;
+    emptyRow: Row;
+    _grid: Grid;
+    $table: JQuery;
+    $tbody: JQuery;
+    $colgroup: JQuery;
+    protected _delegate: BodyDelegateInterface;
+    events: EventEmitter;
+    constructor(delegate: BodyDelegateInterface, columns: List<Column>, collection: ModelCollection<ActiveModel>, rowType?: RowInterface);
+    initialize(): void;
+    protected columnChangedWidth(e: any): void;
+    getDelegate(): BodyDelegateInterface;
+    protected addModels(evt: any): void;
+    protected removeModels(evt: any): void;
+    setGrid(grid: Grid): void;
+    getGrid(): Grid;
+    protected prependEmptyRow(): void;
+    protected removeEmptyRow(): void;
+    protected emptyRowDidChange(e: any): void;
+    addRow(model: ActiveModel, index?: number, items?: ModelCollection<ActiveModel>): void;
+    protected insertRow(row: Row): void;
+    addRows(evt: any): void;
+    removeRows(evt: any): void;
+    removeRow(model: ActiveModel): this;
+    sortRows(e: any): void;
+    refresh(evt: any): void;
+    render(): this;
+    remove(): this;
+    getActiveCell(): Cell;
+    getCell(model: ActiveModel, column: Column): Cell;
+    moveToCell(evt: any): void;
+    protected deactivateCell(): void;
+    protected activate(row: Row, cell: Cell): void;
+    protected changedRow(fromRow: Row, toRow: Row): void;
+    protected focusEmptyRow(): void;
+    protected changedCell(fromCell: Cell, toCell: Cell): void;
+    moveToNextCell(evt: any): this;
+    protected beforeActivateCell(column: Column, model: ActiveModel): boolean;
+}
