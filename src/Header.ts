@@ -3,6 +3,7 @@ import View from "./View";
 import Column, {COLUMN_EVENTS} from "./Column";
 import HeaderRow from "./HeaderRow";
 import Grid from "./Grid";
+import * as $ from "jquery";
 
 export default class Header extends View {
 

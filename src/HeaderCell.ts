@@ -3,6 +3,7 @@ import HeaderRow from "./HeaderRow";
 import Column, {COLUMN_EVENTS} from "./Column";
 import EventEmitter from "ts-core/lib/Events/EventEmitter";
 import {SortedListDirection} from "ts-core/lib/Data/SortedList";
+import * as $ from "jquery";
 
 export const HEADER_CELL_EVENTS = {
     CLICK: 'headerCell:click',

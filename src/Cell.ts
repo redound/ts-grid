@@ -6,6 +6,7 @@ import EventEmitter from "ts-core/lib/Events/EventEmitter";
 import {callByNeed} from "./utils";
 import Command from "./Command";
 import {GRID_EVENTS} from "./Grid";
+import * as $ from "jquery";
 
 export const CELL_EVENTS = {
     CHANGED: 'cell:changed',

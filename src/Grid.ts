@@ -8,6 +8,7 @@ import ColumnResizer, {COLUMN_RESIZER_EVENTS} from "./ColumnResizer";
 import ColumnResizerGuide from "./ColumnResizerGuide";
 import HeaderCell, {HEADER_CELL_EVENTS} from "./HeaderCell";
 import {SortedListDirection} from "ts-core/lib/Data/SortedList";
+import * as $ from "jquery";
 
 export const GRID_EVENTS = {
     RENDERED: 'tsGrid:rendered',

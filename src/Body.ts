@@ -13,6 +13,7 @@ import Grid, {GRID_EVENTS} from "./Grid";
 import {callByNeed} from "./utils";
 import Command from "./Command";
 import * as _ from "underscore";
+import * as $ from "jquery";
 
 export const BODY_EVENTS = {
     CHANGED_ROW: 'body:changedRow',
