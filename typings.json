@@ -7,7 +7,5 @@
     "jquery": "registry:dt/jquery#1.10.0+20160316155526",
     "underscore": "registry:dt/underscore#1.7.0+20160316155526"
   },
-  "dependencies": {
-    "ts-core": "github:redound/ts-core#dev-package"
-  }
+  "dependencies": {}
 }
