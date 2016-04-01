@@ -12,6 +12,7 @@ import Cell from "./Cell";
 import Grid, {GRID_EVENTS} from "./Grid";
 import {callByNeed} from "./utils";
 import Command from "./Command";
+import * as _ from "underscore";
 
 export const BODY_EVENTS = {
     CHANGED_ROW: 'body:changedRow',

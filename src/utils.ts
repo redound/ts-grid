@@ -1,3 +1,6 @@
+import * as _ from "underscore";
+
+
 export function callByNeed(...arg:any[]) {
 
     var value = arguments[0];

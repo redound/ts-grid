@@ -2,6 +2,7 @@ import Grid from "./Grid";
 import {CellInterface, default as Cell} from "./Cell";
 import EventEmitter from "ts-core/lib/Events/EventEmitter";
 import HeaderCell, {HeaderCellInterface} from "./HeaderCell";
+import * as _ from "underscore";
 
 export const COLUMN_EVENTS = {
     CHANGED_WIDTH: 'column:changedWidth'

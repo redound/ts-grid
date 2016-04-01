@@ -1,3 +1,6 @@
+import * as _ from "underscore";
+
+
 /**
  * IMPORTANT: This should be a port from Backbone's View concept
  */
