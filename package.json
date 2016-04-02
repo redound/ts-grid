@@ -5,16 +5,15 @@
   "main": "lib/ts-grid.js",
   "scripts": {
     "test": "",
-    "postinstall": "typings install",
     "build": "tsc"
   },
-  "dependencies": {},
-  "devDependencies": {
+  "dependencies": {
     "angularjs-kit": "git+https://github.com/redound/angularjs-kit.git#dev-package",
     "ts-core": "git+https://github.com/redound/ts-core.git#dev-package",
     "ts-data": "git+https://github.com/redound/ts-data.git#dev-package",
     "ts-validate": "git+https://github.com/redound/ts-validate.git#dev-package"
   },
+  "devDependencies": {},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ts-grid/ts-grid.git"
